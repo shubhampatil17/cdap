@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 import io.cdap.cdap.api.common.Bytes;
 import io.cdap.cdap.api.data.schema.Schema;
@@ -78,7 +77,6 @@ public class DefaultPreviewStore implements PreviewStore {
   private static final byte[] WAITING = Bytes.toBytes("w");
   private static final byte[] CONFIG = Bytes.toBytes("c");
   private static final byte[] APPID = Bytes.toBytes("a");
-
 
   private final AtomicLong counter = new AtomicLong(0L);
 
