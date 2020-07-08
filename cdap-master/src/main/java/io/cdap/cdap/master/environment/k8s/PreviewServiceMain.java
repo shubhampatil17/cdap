@@ -25,7 +25,10 @@ import io.cdap.cdap.app.guice.AppFabricServiceRuntimeModule;
 import io.cdap.cdap.app.guice.AuthorizationModule;
 import io.cdap.cdap.app.guice.ProgramRunnerRuntimeModule;
 import io.cdap.cdap.app.guice.UnsupportedExploreClient;
-import io.cdap.cdap.app.preview.*;
+import io.cdap.cdap.app.preview.PreviewHttpModule;
+import io.cdap.cdap.app.preview.PreviewHttpServer;
+import io.cdap.cdap.app.preview.PreviewRunnerManager;
+import io.cdap.cdap.app.preview.PreviewRunnerManagerModule;
 import io.cdap.cdap.common.conf.Constants;
 import io.cdap.cdap.common.guice.DFSLocationModule;
 import io.cdap.cdap.common.logging.LoggingContext;
@@ -95,7 +98,7 @@ public class PreviewServiceMain extends AbstractServiceMain<EnvironmentOptions> 
                              EnvironmentOptions options) {
     services.add(injector.getInstance(MetricsCollectionService.class));
     services.add(injector.getInstance(PreviewHttpServer.class));
-    services.add(((Service)injector.getInstance(PreviewRunnerManager.class)));
+    services.add(((Service) injector.getInstance(PreviewRunnerManager.class)));
   }
 
   @Nullable

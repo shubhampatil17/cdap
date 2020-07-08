@@ -18,6 +18,7 @@ package io.cdap.cdap.internal.app.preview;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.AbstractIdleService;
+import com.google.common.util.concurrent.Service;
 import com.google.gson.JsonElement;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -27,6 +28,7 @@ import com.google.inject.PrivateModule;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.name.Named;
+import com.google.inject.name.Names;
 import com.google.inject.util.Modules;
 import io.cdap.cdap.app.preview.PreviewConfigModule;
 import io.cdap.cdap.app.preview.PreviewManager;
@@ -64,10 +66,10 @@ import io.cdap.cdap.internal.app.namespace.StorageProviderNamespaceAdmin;
 import io.cdap.cdap.internal.app.services.ProgramLifecycleService;
 import io.cdap.cdap.internal.app.store.DefaultStore;
 import io.cdap.cdap.internal.app.store.preview.DefaultPreviewStore;
-import io.cdap.cdap.logging.guice.LocalLogAppenderModule;
 import io.cdap.cdap.logging.guice.PreviewLocalLogAppenderModule;
 import io.cdap.cdap.logging.read.FileLogReader;
 import io.cdap.cdap.logging.read.LogReader;
+import io.cdap.cdap.messaging.MessagingService;
 import io.cdap.cdap.messaging.guice.MessagingServerRuntimeModule;
 import io.cdap.cdap.metadata.DefaultMetadataAdmin;
 import io.cdap.cdap.metadata.MetadataAdmin;
@@ -119,6 +121,7 @@ public class DefaultPreviewManager extends AbstractIdleService implements Previe
   private final LevelDBTableService previewLevelDBTableService;
   private final PreviewRequestQueue previewRequestQueue;
   private final PreviewStore previewStore;
+  private final MessagingService messagingService;
   private Injector previewInjector;
 
   @Inject
@@ -130,7 +133,7 @@ public class DefaultPreviewManager extends AbstractIdleService implements Previe
                         @Named(PreviewConfigModule.PREVIEW_CCONF) CConfiguration previewCConf,
                         @Named(PreviewConfigModule.PREVIEW_HCONF) Configuration previewHConf,
                         @Named(PreviewConfigModule.PREVIEW_SCONF) SConfiguration previewSConf,
-                        PreviewRequestQueue previewRequestQueue) {
+                        PreviewRequestQueue previewRequestQueue, MessagingService messagingService) {
     this.previewCConf = previewCConf;
     this.previewHConf = previewHConf;
     this.previewSConf = previewSConf;
@@ -142,6 +145,7 @@ public class DefaultPreviewManager extends AbstractIdleService implements Previe
     this.previewLevelDBTableService = previewLevelDBTableService;
     this.previewRequestQueue = previewRequestQueue;
     this.previewStore = new DefaultPreviewStore(previewLevelDBTableService);
+    this.messagingService = messagingService;
   }
 
   @Override
@@ -273,6 +277,11 @@ public class DefaultPreviewManager extends AbstractIdleService implements Previe
 
           bind(MetadataAdmin.class).to(DefaultMetadataAdmin.class);
           expose(MetadataAdmin.class);
+
+          bind(MessagingService.class)
+            .annotatedWith(Names.named(PreviewConfigModule.GLOBAL_TMS))
+            .toInstance(messagingService);
+          expose(MessagingService.class).annotatedWith(Names.named(PreviewConfigModule.GLOBAL_TMS));
         }
       },
       new AbstractModule() {
@@ -306,5 +315,13 @@ public class DefaultPreviewManager extends AbstractIdleService implements Previe
     }
 
     return preview.program(programType, programName);
+  }
+
+  private void stopQuietly(Service service) {
+    try {
+      service.stopAndWait();
+    } catch (Exception e) {
+      LOG.warn("Exception when stopping service {}", service, e);
+    }
   }
 }
