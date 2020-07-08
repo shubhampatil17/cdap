@@ -14,12 +14,16 @@
  * the License.
  */
 
+import ExpansionPanel from '@material-ui/core/ExpansionPanel';
+import ExpansionPanelActions from '@material-ui/core/ExpansionPanelActions';
+import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import withStyles, { StyleRules, WithStyles } from '@material-ui/core/styles/withStyles';
+import Typography from '@material-ui/core/Typography';
 import classnames from 'classnames';
 import { LEFT_PANEL_WIDTH } from 'components/HttpExecutor';
 import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
 import HttpExecutorStore from 'components/HttpExecutor/store/HttpExecutorStore';
-import { List } from 'immutable';
+import { List, Map } from 'immutable';
 import * as React from 'react';
 import { connect } from 'react-redux';
 
@@ -28,6 +32,10 @@ const styles = (theme): StyleRules => {
     root: {
       borderRight: `1px solid ${theme.palette.grey[300]}`,
       height: '100%',
+    },
+    timestampGroup: {
+      display: 'flex',
+      flexFlow: 'column',
     },
     requestRow: {
       padding: '10px',
@@ -80,6 +88,17 @@ const styles = (theme): StyleRules => {
   };
 };
 
+const StyledExpansionPanel = withStyles(() => ({
+  root: {
+    '&$expanded': {
+      margin: 0,
+    },
+    borderBottom: '1px solid #C0C0C0',
+  },
+  /* Styles applied to the root element if `expanded={true}`. */
+  expanded: {},
+}))(ExpansionPanel);
+
 enum RequestMethod {
   GET = 'GET',
   POST = 'POST',
@@ -88,6 +107,7 @@ enum RequestMethod {
 }
 
 interface IRequestHistory {
+  timestamp: Date;
   method: RequestMethod;
   path: string;
   body: string;
@@ -141,17 +161,44 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
   onRequestClick,
   resetIncomingRequest,
 }) => {
-  const [requestLog, setRequestLog] = React.useState(List<IRequestHistory>([]));
+  const [requestLog, setRequestLog] = React.useState(
+    Map<string, List<IRequestHistory>>({}) // maps timestamp date (e.g. April 5th) to a list of corresponding request histories
+  );
+
+  const convertDateToString = (date: Date) => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  };
 
   // Query through localstorage and popluate RequestHistoryTab
   React.useEffect(() => {
-    let newRequestLog = List<IRequestHistory>([]);
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('RequestHistory')) {
+    // Group and sort logs by timestamp
+    let newRequestLog = Map<string, any>({});
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith('RequestHistory'))
+      .sort((a, b) => {
+        const timestampA = new Date(a.substr(14));
+        const timestampB = new Date(b.substr(14));
+        if (timestampA < timestampB) {
+          return 1;
+        } else if (timestampA > timestampB) {
+          return -1;
+        } else {
+          return 0;
+        }
+      })
+      .forEach((key) => {
+        const timestamp = new Date(key.substr(14));
+        const timestampInString = convertDateToString(timestamp);
         const newRequest = JSON.parse(localStorage.getItem(key));
-        newRequestLog = newRequestLog.push(newRequest);
-      }
-    });
+        newRequest.timestamp = timestamp;
+
+        const existingRequestHistory = newRequestLog.get(timestampInString) || List([]);
+        newRequestLog = newRequestLog.set(
+          timestampInString,
+          existingRequestHistory.push(newRequest)
+        );
+      });
     setRequestLog(newRequestLog);
   }, []);
 
@@ -160,14 +207,21 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
     if (!incomingRequest) {
       return;
     }
-    const timestamp = `RequestHistory ${new Date().toLocaleString()}`;
+    const currentDate = new Date();
+    const timestamp = `RequestHistory ${currentDate.toLocaleString()}`;
     const newRequest = HttpExecutorStore.getState().http;
 
     // Store new request history in local storage
     localStorage.setItem(timestamp, JSON.stringify(newRequest));
 
     // Update the component view in real-time, since we cannot listen to local storage's change
-    const newRequestLog = requestLog.push(newRequest);
+    // Since the new request call is the latest out of all the request histories, insert at 0th index
+    const timestampInString = convertDateToString(currentDate);
+    const existingRequestHistory = requestLog.get(timestampInString) || List([]);
+    const newRequestLog = requestLog.set(
+      timestampInString,
+      existingRequestHistory.insert(0, newRequest)
+    );
     setRequestLog(newRequestLog);
 
     resetIncomingRequest();
@@ -175,21 +229,37 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
 
   return (
     <div className={classes.root}>
-      {requestLog.map((history, i) => {
+      {requestLog.keySeq().map((timestamp) => {
+        const requestHistories = requestLog.get(timestamp);
         return (
-          <div key={i} className={classes.requestRow} onClick={() => onRequestClick(history)}>
-            <div
-              className={classnames(classes.requestMethod, {
-                [classes.getMethod]: history.method === 'GET',
-                [classes.postMethod]: history.method === 'POST',
-                [classes.deleteMethod]: history.method === 'DELETE',
-                [classes.putMethod]: history.method === 'PUT',
+          <StyledExpansionPanel key={timestamp} defaultExpanded elevation={0}>
+            <ExpansionPanelSummary classes={{ root: classes.root, expanded: classes.expanded }}>
+              <Typography>{timestamp}</Typography>
+            </ExpansionPanelSummary>
+            <ExpansionPanelActions className={classes.timestampGroup}>
+              {requestHistories.map((request, requestIndex) => {
+                return (
+                  <div
+                    key={`request-${requestIndex}`}
+                    className={classes.requestRow}
+                    onClick={() => onRequestClick(request)}
+                  >
+                    <div
+                      className={classnames(classes.requestMethod, {
+                        [classes.getMethod]: request.method === RequestMethod.GET,
+                        [classes.postMethod]: request.method === RequestMethod.POST,
+                        [classes.deleteMethod]: request.method === RequestMethod.DELETE,
+                        [classes.putMethod]: request.method === RequestMethod.PUT,
+                      })}
+                    >
+                      <div className={classes.requestMethodText}>{request.method}</div>
+                    </div>
+                    <div className={classes.requestPath}>{request.path}</div>
+                  </div>
+                );
               })}
-            >
-              <div className={classes.requestMethodText}>{history.method}</div>
-            </div>
-            <div className={classes.requestPath}>{history.path}</div>
-          </div>
+            </ExpansionPanelActions>
+          </StyledExpansionPanel>
         );
       })}
     </div>
