@@ -289,7 +289,7 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
   };
 
   return (
-    <div className={classes.root}>
+    <div className={classes.root} data-cy="request-history-tab">
       <RequestSearch searchText={searchText} setSearchText={setSearchText} />
       <div className={classes.requestLogManager}>
         <div className={classes.saveResponses}>
@@ -299,10 +299,15 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
             color="primary"
             name="checkedB"
             inputProps={{ 'aria-label': 'primary checkbox' }}
+            data-cy="save-mode-btn"
           />
           Save responses
         </div>
-        <Button onClick={() => setClearDialogOpen(true)} className={classes.clearAll}>
+        <Button
+          onClick={() => setClearDialogOpen(true)}
+          className={classes.clearAll}
+          data-cy="clear-btn"
+        >
           Clear
         </Button>
       </div>

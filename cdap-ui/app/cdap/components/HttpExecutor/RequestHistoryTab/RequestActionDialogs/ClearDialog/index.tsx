@@ -58,7 +58,7 @@ const ClearDialogView: React.FC<IClearDialogProps> = ({
       confirmationElem={
         'Are you sure you want to clear all of your request history from your CDAP Account?'
       }
-      confirmButtonText={'Delete'}
+      confirmButtonText={'Clear'}
       confirmFn={clearRequestLog}
       cancelFn={handleClose}
     />

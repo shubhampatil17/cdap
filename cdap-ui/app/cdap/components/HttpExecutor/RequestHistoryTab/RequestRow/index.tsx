@@ -131,7 +131,11 @@ const RequestRowView: React.FC<IRequestRowProps> = ({ classes, request, onReques
 
   return (
     <div>
-      <div className={classes.requestRow} onClick={() => onRequestClick(request)}>
+      <div
+        data-cy={`request-row-${request.requestID.toLocaleString()}`}
+        className={classes.requestRow}
+        onClick={() => onRequestClick(request)}
+      >
         <div className={classes.requestTimestamp}>
           <Tooltip
             classes={{
@@ -140,8 +144,9 @@ const RequestRowView: React.FC<IRequestRowProps> = ({ classes, request, onReques
             title={renderTimestamp(request.requestID)}
             placement="right"
             className={classes.requestActionButton}
+            data-cy="timestamp-tooltip"
           >
-            <ScheduleIcon />
+            <ScheduleIcon data-cy="timestamp-icon" />
           </Tooltip>
         </div>
         <div
@@ -152,9 +157,13 @@ const RequestRowView: React.FC<IRequestRowProps> = ({ classes, request, onReques
             [classes.putMethod]: request.method === RequestMethod.PUT,
           })}
         >
-          <div className={classes.requestMethodText}>{request.method}</div>
+          <div className={classes.requestMethodText} data-cy="request-method">
+            {request.method}
+          </div>
         </div>
-        <div className={classes.requestPath}>{request.path}</div>
+        <div className={classes.requestPath} data-cy="request-path">
+          {request.path}
+        </div>
         <div className={classes.requestActionButtons}>
           <Tooltip
             classes={{
@@ -164,7 +173,7 @@ const RequestRowView: React.FC<IRequestRowProps> = ({ classes, request, onReques
             placement="bottom"
             className={classes.requestActionButton}
           >
-            <DeleteIcon onClick={() => setDeleteDialogOpen(true)} />
+            <DeleteIcon data-cy="delete-icon" onClick={() => setDeleteDialogOpen(true)} />
           </Tooltip>
         </div>
       </div>
