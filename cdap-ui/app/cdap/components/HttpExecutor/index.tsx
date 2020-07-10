@@ -32,7 +32,7 @@ const PREFIX = 'features.HttpExecutor';
 
 require('./HttpExecutor.scss');
 
-export const LEFT_PANEL_WIDTH = 300;
+export const LEFT_PANEL_WIDTH = 500;
 
 const styles = (theme): StyleRules => {
   return {
@@ -72,7 +72,6 @@ const HttpExecutorView: React.FC<WithStyles<typeof styles>> = ({ classes }) => {
                 <StatusCode />
               </span>
             </div>
-
             <HttpResponse />
           </div>
         </div>

@@ -14,100 +14,48 @@
  * the License.
  */
 
+import Button from '@material-ui/core/Button';
 import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelActions from '@material-ui/core/ExpansionPanelActions';
+import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
 import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import withStyles, { StyleRules, WithStyles } from '@material-ui/core/styles/withStyles';
+import Switch from '@material-ui/core/Switch';
 import Typography from '@material-ui/core/Typography';
-import classnames from 'classnames';
-import { LEFT_PANEL_WIDTH } from 'components/HttpExecutor';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import ClearDialog from 'components/HttpExecutor/RequestHistoryTab/RequestActionDialogs/ClearDialog';
+import RequestRow from 'components/HttpExecutor/RequestHistoryTab/RequestRow';
+import RequestSearch from 'components/HttpExecutor/RequestHistoryTab/RequestSearch';
 import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
 import HttpExecutorStore from 'components/HttpExecutor/store/HttpExecutorStore';
+import If from 'components/If';
 import { List, Map } from 'immutable';
 import * as React from 'react';
 import { connect } from 'react-redux';
 
-const styles = (theme): StyleRules => {
-  return {
-    root: {
-      borderRight: `1px solid ${theme.palette.grey[300]}`,
-      height: '100%',
-    },
-    timestampGroup: {
-      display: 'flex',
-      flexFlow: 'column',
-    },
-    requestRow: {
-      padding: '10px',
-      lineHeight: '24px',
-      display: 'grid',
-      width: '100%',
-      gridTemplateColumns: '50px 1fr',
-      cursor: 'pointer',
+// Every key in localStorage that belongs to requestHistoryTab starts with requestHistoryIdentifier
+const REQUEST_HISTORY_IDENTIFIER = 'RequestHistory';
 
-      '&:hover': {
-        backgroundColor: theme.palette.grey[700],
-      },
-    },
-    requestMethod: {
-      paddingLeft: '5px',
-      color: theme.palette.white[50],
-      width: '100%',
-      height: '100%',
-      fontWeight: 600,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'flex-start',
-      fontSize: '10px',
-    },
-    requestMethodText: {
-      width: '100%',
-      textAlign: 'left',
-      alignSelf: 'center',
-    },
-    requestPath: {
-      width: `${LEFT_PANEL_WIDTH / 1.5}px`,
-      wordWrap: 'break-word',
-      textAlign: 'left',
-      textTransform: 'lowercase',
-      fontSize: '10px',
-      lineHeight: '1.3',
-    },
-    getMethod: {
-      color: theme.palette.green[50],
-    },
-    postMethod: {
-      color: theme.palette.orange[50],
-    },
-    putMethod: {
-      color: theme.palette.yellow[50],
-    },
-    deleteMethod: {
-      color: theme.palette.red[50],
-    },
-  };
-};
+export interface IIncomingRequest {
+  status: IncomingRequestStatus;
+  requestID: Date;
+}
 
-const StyledExpansionPanel = withStyles(() => ({
-  root: {
-    '&$expanded': {
-      margin: 0,
-    },
-    borderBottom: '1px solid #C0C0C0',
-  },
-  /* Styles applied to the root element if `expanded={true}`. */
-  expanded: {},
-}))(ExpansionPanel);
+export enum IncomingRequestStatus {
+  ADD = 'ADD',
+  DELETE = 'DELETE',
+  NORMAL = 'NORMAL',
+  CLEAR = 'CLEAR',
+}
 
-enum RequestMethod {
+export enum RequestMethod {
   GET = 'GET',
   POST = 'POST',
   PUT = 'PUT',
   DELETE = 'DELETE',
 }
 
-interface IRequestHistory {
-  timestamp: Date;
+export interface IRequestHistory {
+  requestID: Date;
   method: RequestMethod;
   path: string;
   body: string;
@@ -124,11 +72,53 @@ interface IRequestHistory {
   statusCode: number;
 }
 
-interface IRequestHistoryTabProps extends WithStyles<typeof styles> {
-  incomingRequest: boolean;
-  onRequestClick: (request: IRequestHistory) => void;
-  resetIncomingRequest: () => void;
-}
+const styles = (theme): StyleRules => {
+  return {
+    root: {
+      borderRight: `1px solid ${theme.palette.grey[300]}`,
+      height: '100%',
+    },
+    requestLogManager: {
+      display: 'grid',
+      width: '100%',
+      gridTemplateColumns: 'repeat(7, 1fr)',
+    },
+    saveResponses: {
+      gridColumnStart: '1',
+      gridColumnEnd: '5',
+    },
+    clearAll: {
+      gridColumnStart: '7',
+    },
+    timestampGroup: {
+      display: 'flex',
+      flexFlow: 'column',
+      padding: '0',
+    },
+  };
+};
+
+const StyledExpansionPanel = withStyles(() => ({
+  root: {
+    '&$expanded': {
+      margin: 0,
+    },
+    borderTop: '0.5px solid #C0C0C0',
+  },
+  /* Styles applied to the root element if `expanded={true}`. */
+  expanded: {},
+}))(ExpansionPanel);
+
+const StyledExpansionPanelSummary = withStyles({
+  expandIcon: {
+    order: -1,
+    paddingRight: '20px',
+  },
+  root: {
+    height: '40px !important',
+    padding: '0px !important',
+  },
+})(ExpansionPanelSummary);
 
 const mapStateToProps = (state) => {
   return {
@@ -138,130 +128,207 @@ const mapStateToProps = (state) => {
 
 const mapDispatch = (dispatch) => {
   return {
-    onRequestClick: (request: IRequestHistory) => {
-      dispatch({
-        type: HttpExecutorActions.setRequestHistoryView,
-        payload: request,
-      });
-    },
     resetIncomingRequest: () => {
       dispatch({
         type: HttpExecutorActions.notifyIncomingRequest,
         payload: {
-          incomingRequest: false,
+          incomingRequest: {
+            status: IncomingRequestStatus.NORMAL,
+          },
         },
       });
     },
   };
 };
 
+interface IRequestHistoryTabProps extends WithStyles<typeof styles> {
+  incomingRequest: IIncomingRequest;
+  resetIncomingRequest: () => void;
+}
+
 const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
   classes,
   incomingRequest,
-  onRequestClick,
   resetIncomingRequest,
 }) => {
-  const [requestLog, setRequestLog] = React.useState(
-    Map<string, List<IRequestHistory>>({}) // maps timestamp date (e.g. April 5th) to a list of corresponding request histories
-  );
-
-  const convertDateToString = (date: Date) => {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
-  };
+  // requestLog maps a date (e.g. April 5th) to a list of request histories that were logged that day.
+  // The list of request histories is sorted by timestamp.
+  const [requestLog, setRequestLog] = React.useState(Map<string, List<IRequestHistory>>({}));
+  const [searchText, setSearchText] = React.useState('');
+  const [saveRequest, setSaveRequest] = React.useState(true);
+  const [clearDialogOpen, setClearDialogOpen] = React.useState(false);
 
   // Query through localstorage and popluate RequestHistoryTab
   React.useEffect(() => {
-    // Group and sort logs by timestamp
-    let newRequestLog = Map<string, any>({});
-    Object.keys(localStorage)
-      .filter((key) => key.startsWith('RequestHistory'))
-      .sort((a, b) => {
-        const timestampA = new Date(a.substr(14));
-        const timestampB = new Date(b.substr(14));
-        if (timestampA < timestampB) {
-          return 1;
-        } else if (timestampA > timestampB) {
-          return -1;
-        } else {
-          return 0;
-        }
-      })
-      .forEach((key) => {
-        const timestamp = new Date(key.substr(14));
-        const timestampInString = convertDateToString(timestamp);
-        const newRequest = JSON.parse(localStorage.getItem(key));
-        newRequest.timestamp = timestamp;
-
-        const existingRequestHistory = newRequestLog.get(timestampInString) || List([]);
-        newRequestLog = newRequestLog.set(
-          timestampInString,
-          existingRequestHistory.push(newRequest)
-        );
-      });
-    setRequestLog(newRequestLog);
+    fetchFromLocalStorage();
   }, []);
 
   // When new request history is incoming, update RequestHistoryTab
   React.useEffect(() => {
-    if (!incomingRequest) {
+    switch (incomingRequest.status) {
+      case IncomingRequestStatus.ADD:
+        addRequestLog();
+        break;
+      case IncomingRequestStatus.DELETE:
+        deleteRequestLog(incomingRequest.requestID);
+        break;
+      case IncomingRequestStatus.CLEAR:
+        clearRequestLog();
+        break;
+      default:
+        break;
+    }
+    resetIncomingRequest();
+  }, [incomingRequest.status]);
+
+  const fetchFromLocalStorage = () => {
+    // Group and sort logs by timestamp
+    let newRequestLog = Map<string, List<IRequestHistory>>({});
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith(REQUEST_HISTORY_IDENTIFIER))
+      .sort((a, b) => compareByTimestamp(a.substr(14), b.substr(14)))
+      .forEach((key) => {
+        // Parse the timestamp from localStorage
+        const requestID = new Date(key.substr(14));
+
+        // Parse the request information from localStorage
+        const newRequest: IRequestHistory = JSON.parse(localStorage.getItem(key));
+        // Attach requestID as a unique idenitifier of each request,
+        // where requestID represents the timestamp at which a request was logged
+        newRequest.requestID = requestID;
+
+        const dateID: string = getTimestampDate(requestID);
+        const requestsGroup = getRequestsByDate(newRequestLog, dateID);
+        newRequestLog = newRequestLog.set(dateID, requestsGroup.push(newRequest));
+      });
+    setRequestLog(newRequestLog);
+  };
+
+  const addRequestLog = () => {
+    if (!saveRequest) {
       return;
     }
-    const currentDate = new Date();
-    const timestamp = `RequestHistory ${currentDate.toLocaleString()}`;
-    const newRequest = HttpExecutorStore.getState().http;
+    // Get the current timestamp since new request is being logged
+    const requestID = new Date();
+
+    // Get the request information from HttpExecutorStore
+    const requestToAdd: IRequestHistory = HttpExecutorStore.getState().http;
+    // Attach requestID as a unique idenitifier of each request,
+    // where requestID represents the timestamp at which a request was logged
+    requestToAdd.requestID = requestID;
 
     // Store new request history in local storage
-    localStorage.setItem(timestamp, JSON.stringify(newRequest));
+    localStorage.setItem(getLocalStorageKey(requestID), JSON.stringify(requestToAdd));
 
     // Update the component view in real-time, since we cannot listen to local storage's change
     // Since the new request call is the latest out of all the request histories, insert at 0th index
-    const timestampInString = convertDateToString(currentDate);
-    const existingRequestHistory = requestLog.get(timestampInString) || List([]);
-    const newRequestLog = requestLog.set(
-      timestampInString,
-      existingRequestHistory.insert(0, newRequest)
-    );
+    const dateID = getTimestampDate(requestID);
+    const requestsGroup = getRequestsByDate(requestLog, dateID);
+    const newRequestLog = requestLog.set(dateID, requestsGroup.insert(0, requestToAdd));
     setRequestLog(newRequestLog);
+  };
 
-    resetIncomingRequest();
-  }, [incomingRequest]);
+  const deleteRequestLog = (requestID: Date) => {
+    if (!requestID) {
+      return;
+    }
+
+    // Delete the specified request log from local storage
+    localStorage.removeItem(getLocalStorageKey(requestID));
+
+    // Delete the specified request log from local state
+    const dateID = getTimestampDate(requestID);
+    const requestsGroup = getRequestsByDate(requestLog, dateID);
+    const requestToDelete = requestsGroup.findIndex((data) => data.requestID === requestID);
+    const newRequestLog = requestLog.set(dateID, requestsGroup.delete(requestToDelete));
+    setRequestLog(newRequestLog);
+  };
+
+  const clearRequestLog = () => {
+    // Delete every request log from local storage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith(REQUEST_HISTORY_IDENTIFIER)) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    // Delete every request log from local state
+    setRequestLog(Map({}));
+  };
+
+  const getTimestampDate = (timestamp: Date): string => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return timestamp.toLocaleDateString('en-US', options);
+  };
+
+  const getRequestsByDate = (
+    log: Map<string, List<IRequestHistory>>,
+    dateID: string
+  ): List<IRequestHistory> => {
+    return log.get(dateID) || List([]);
+  };
+
+  const getLocalStorageKey = (timestamp: Date): string => {
+    return `${REQUEST_HISTORY_IDENTIFIER} ${timestamp.toLocaleString()}`;
+  };
+
+  const compareByTimestamp = (a: string, b: string) => {
+    const timestampA = new Date(a);
+    const timestampB = new Date(b);
+    if (timestampA < timestampB) {
+      return 1;
+    } else if (timestampA > timestampB) {
+      return -1;
+    } else {
+      return 0;
+    }
+  };
+
+  const getFilteredRequestLogs = (requests: List<IRequestHistory>, query: string) => {
+    return requests.filter((request) => request.path.includes(query));
+  };
 
   return (
     <div className={classes.root}>
-      {requestLog.keySeq().map((timestamp) => {
-        const requestHistories = requestLog.get(timestamp);
-        return (
-          <StyledExpansionPanel key={timestamp} defaultExpanded elevation={0}>
-            <ExpansionPanelSummary classes={{ root: classes.root, expanded: classes.expanded }}>
-              <Typography>{timestamp}</Typography>
-            </ExpansionPanelSummary>
-            <ExpansionPanelActions className={classes.timestampGroup}>
-              {requestHistories.map((request, requestIndex) => {
-                return (
-                  <div
-                    key={`request-${requestIndex}`}
-                    className={classes.requestRow}
-                    onClick={() => onRequestClick(request)}
-                  >
-                    <div
-                      className={classnames(classes.requestMethod, {
-                        [classes.getMethod]: request.method === RequestMethod.GET,
-                        [classes.postMethod]: request.method === RequestMethod.POST,
-                        [classes.deleteMethod]: request.method === RequestMethod.DELETE,
-                        [classes.putMethod]: request.method === RequestMethod.PUT,
-                      })}
-                    >
-                      <div className={classes.requestMethodText}>{request.method}</div>
-                    </div>
-                    <div className={classes.requestPath}>{request.path}</div>
-                  </div>
-                );
-              })}
-            </ExpansionPanelActions>
-          </StyledExpansionPanel>
-        );
-      })}
+      <RequestSearch searchText={searchText} setSearchText={setSearchText} />
+      <div className={classes.requestLogManager}>
+        <div className={classes.saveResponses}>
+          <Switch
+            checked={saveRequest}
+            onChange={() => setSaveRequest(!saveRequest)}
+            color="primary"
+            name="checkedB"
+            inputProps={{ 'aria-label': 'primary checkbox' }}
+          />
+          Save responses
+        </div>
+        <Button onClick={() => setClearDialogOpen(true)} className={classes.clearAll}>
+          Clear
+        </Button>
+      </div>
+      {requestLog
+        .keySeq()
+        .toArray()
+        .sort((a: string, b: string) => compareByTimestamp(a, b))
+        .map((dateID: string) => {
+          const requests: List<IRequestHistory> = requestLog.get(dateID);
+          const filteredRequests = getFilteredRequestLogs(requests, searchText);
+          return (
+            <If condition={filteredRequests.size > 0}>
+              <StyledExpansionPanel key={dateID} defaultExpanded elevation={0}>
+                <StyledExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>{dateID}</Typography>
+                </StyledExpansionPanelSummary>
+                <ExpansionPanelDetails className={classes.timestampGroup}>
+                  {filteredRequests.map((request, requestIndex) => (
+                    <RequestRow key={requestIndex} request={request} />
+                  ))}
+                </ExpansionPanelDetails>
+              </StyledExpansionPanel>
+            </If>
+          );
+        })}
+      <ClearDialog open={clearDialogOpen} handleClose={() => setClearDialogOpen(false)} />
     </div>
   );
 };
@@ -269,5 +336,4 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
 const RequestHistoryTab = withStyles(styles)(
   connect(mapStateToProps, mapDispatch)(RequestHistoryTabView)
 );
-// const RequestHistoryTab = withStyles(styles)(RequestHistoryTabView);
 export default RequestHistoryTab;

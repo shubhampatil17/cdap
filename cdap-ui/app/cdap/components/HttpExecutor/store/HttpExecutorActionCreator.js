@@ -15,6 +15,7 @@
  */
 
 import { MyBlankPathApi } from 'api/blankpath';
+import { IncomingRequestStatus } from 'components/HttpExecutor/RequestHistoryTab';
 import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
 import HttpExecutorStore from 'components/HttpExecutor/store/HttpExecutorStore';
 
@@ -74,7 +75,9 @@ export function execute() {
       HttpExecutorStore.dispatch({
         type: HttpExecutorActions.notifyIncomingRequest,
         payload: {
-          incomingRequest: true,
+          incomingRequest: {
+            status: IncomingRequestStatus.ADD,
+          },
         },
       });
     },
@@ -90,7 +93,9 @@ export function execute() {
       HttpExecutorStore.dispatch({
         type: HttpExecutorActions.notifyIncomingRequest,
         payload: {
-          incomingRequest: true,
+          incomingRequest: {
+            status: IncomingRequestStatus.ADD,
+          },
         },
       });
     }
