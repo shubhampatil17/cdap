@@ -215,6 +215,7 @@ function SchemaGenerator(schemaTree: INode) {
   } else {
     avroSchema.schema.fields = [];
   }
+  avroSchema.schema.fields = [];
   // Top level record fields.
   const { order } = schemaTree.children;
   if (Array.isArray(order)) {

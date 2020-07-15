@@ -78,7 +78,7 @@ interface IFieldTypeBaseProps {
 
 interface IOnChangePayload {
   property?: string;
-  value?: string | ITypeProperties;
+  value?: string | boolean | ITypeProperties;
   type:
     | OperationTypesEnum.UPDATE
     | OperationTypesEnum.ADD

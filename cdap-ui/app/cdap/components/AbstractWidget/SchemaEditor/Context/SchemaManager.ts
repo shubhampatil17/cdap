@@ -33,7 +33,11 @@ import {
   initTypeProperties,
 } from 'components/AbstractWidget/SchemaEditor/Context/SchemaManagerUtilities';
 import { isNilOrEmpty } from 'services/helpers';
-import { InternalTypesEnum, OperationTypesEnum } from '../SchemaConstants';
+import {
+  InternalTypesEnum,
+  OperationTypesEnum,
+  getDefaultEmptyAvroSchema,
+} from 'components/AbstractWidget/SchemaEditor/SchemaConstants';
 
 interface ISchemaManagerOptions {
   collapseAll: boolean;
@@ -572,7 +576,10 @@ const defaultOptions: ISchemaManagerOptions = {
   collapseAll: true,
 };
 
-function SchemaManager(avroSchema, options: ISchemaManagerOptions = defaultOptions) {
+function SchemaManager(
+  avroSchema = getDefaultEmptyAvroSchema(),
+  options: ISchemaManagerOptions = defaultOptions
+) {
   if (!options) {
     options = defaultOptions;
   } else {
