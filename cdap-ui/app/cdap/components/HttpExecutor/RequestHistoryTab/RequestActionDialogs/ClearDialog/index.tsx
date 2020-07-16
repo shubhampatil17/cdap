@@ -15,8 +15,8 @@
  */
 
 import ConfirmationModal from 'components/ConfirmationModal';
-import { IncomingRequestStatus } from 'components/HttpExecutor/RequestHistoryTab';
 import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
+import { IncomingRequestStatus } from 'components/HttpExecutor/RequestHistoryTab';
 import React from 'react';
 import { connect } from 'react-redux';
 
@@ -56,9 +56,11 @@ const ClearDialogView: React.FC<IClearDialogProps> = ({
       isOpen={open}
       headerTitle={'Clear all your request history'}
       confirmationElem={
-        'Are you sure you want to clear all of your request history from your CDAP Account?'
+        <div>
+          Are you sure you want to clear all of your request history from your CDAP Account?
+        </div>
       }
-      confirmButtonText={'Clear'}
+      confirmButtonText={'Clear All'}
       confirmFn={clearRequestLog}
       cancelFn={handleClose}
     />

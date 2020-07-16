@@ -15,8 +15,8 @@
  */
 
 import ConfirmationModal from 'components/ConfirmationModal';
-import { IncomingRequestStatus } from 'components/HttpExecutor/RequestHistoryTab';
 import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
+import { IncomingRequestStatus } from 'components/HttpExecutor/RequestHistoryTab';
 import React from 'react';
 import { connect } from 'react-redux';
 
@@ -59,7 +59,7 @@ const DeleteDialogView: React.FC<IDeleteDialogProps> = ({
       isOpen={open}
       headerTitle={'Delete your request history'}
       confirmationElem={
-        'Are you sure you want to delete your request history from your CDAP Account?'
+        <div>Are you sure you want to delete your request history from your CDAP Account?</div>
       }
       confirmButtonText={'Delete'}
       confirmFn={() => deleteRequestLog(requestID)}

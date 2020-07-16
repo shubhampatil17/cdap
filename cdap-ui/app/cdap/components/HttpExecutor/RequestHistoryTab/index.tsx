@@ -14,26 +14,31 @@
  * the License.
  */
 
+import * as React from 'react';
+
+import { List, Map } from 'immutable';
+import withStyles, { StyleRules, WithStyles } from '@material-ui/core/styles/withStyles';
+
 import Button from '@material-ui/core/Button';
+import ClearDialog from 'components/HttpExecutor/RequestHistoryTab/RequestActionDialogs/ClearDialog';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpansionPanel from '@material-ui/core/ExpansionPanel';
 import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
 import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import withStyles, { StyleRules, WithStyles } from '@material-ui/core/styles/withStyles';
-import Switch from '@material-ui/core/Switch';
-import Typography from '@material-ui/core/Typography';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import ClearDialog from 'components/HttpExecutor/RequestHistoryTab/RequestActionDialogs/ClearDialog';
-import RequestRow from 'components/HttpExecutor/RequestHistoryTab/RequestRow';
-import RequestSearch from 'components/HttpExecutor/RequestHistoryTab/RequestSearch';
 import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
 import HttpExecutorStore from 'components/HttpExecutor/store/HttpExecutorStore';
 import If from 'components/If';
-import { List, Map } from 'immutable';
-import * as React from 'react';
+import RequestRow from 'components/HttpExecutor/RequestHistoryTab/RequestRow';
+import RequestSearch from 'components/HttpExecutor/RequestHistoryTab/RequestSearch';
+import Switch from '@material-ui/core/Switch';
+import Typography from '@material-ui/core/Typography';
 import { connect } from 'react-redux';
 
 // Every key in localStorage that belongs to requestHistoryTab starts with requestHistoryIdentifier
 const REQUEST_HISTORY_IDENTIFIER = 'RequestHistory';
+
+// Limit number of log entries to be <= LOG_LIMIT.
+const LOG_LIMIT = 200;
 
 export interface IIncomingRequest {
   status: IncomingRequestStatus;
@@ -197,7 +202,7 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
         // where requestID represents the timestamp at which a request was logged
         newRequest.requestID = requestID;
 
-        const dateID: string = getTimestampDate(requestID);
+        const dateID: string = getDateID(requestID);
         const requestsGroup = getRequestsByDate(newRequestLog, dateID);
         newRequestLog = newRequestLog.set(dateID, requestsGroup.push(newRequest));
       });
@@ -208,6 +213,22 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
     if (!saveRequest) {
       return;
     }
+
+    let newRequestLog = requestLog;
+
+    // Limit log entries to be <= LOG_LIMIT.
+    // If the log entries count exceeds LOG_LIMIT, the oldest log should be removed.
+    const logCount = getTotalLogCount();
+    if (logCount >= LOG_LIMIT - 1) {
+      // Find the oldest date
+      const oldestDateID = sortedDateIDs[sortedDateIDs.length - 1];
+
+      // Find the oldest request
+      const oldestRequests = getRequestsByDate(requestLog, oldestDateID);
+      const oldestRequestID = oldestRequests.get(-1).requestID;
+      newRequestLog = deleteRequestLog(oldestRequestID);
+    }
+
     // Get the current timestamp since new request is being logged
     const requestID = new Date();
 
@@ -222,10 +243,9 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
 
     // Update the component view in real-time, since we cannot listen to local storage's change
     // Since the new request call is the latest out of all the request histories, insert at 0th index
-    const dateID = getTimestampDate(requestID);
+    const dateID = getDateID(requestID);
     const requestsGroup = getRequestsByDate(requestLog, dateID);
-    const newRequestLog = requestLog.set(dateID, requestsGroup.insert(0, requestToAdd));
-    setRequestLog(newRequestLog);
+    setRequestLog(newRequestLog.set(dateID, requestsGroup.insert(0, requestToAdd)));
   };
 
   const deleteRequestLog = (requestID: Date) => {
@@ -237,11 +257,17 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
     localStorage.removeItem(getLocalStorageKey(requestID));
 
     // Delete the specified request log from local state
-    const dateID = getTimestampDate(requestID);
+    const dateID = getDateID(requestID);
     const requestsGroup = getRequestsByDate(requestLog, dateID);
     const requestToDelete = requestsGroup.findIndex((data) => data.requestID === requestID);
-    const newRequestLog = requestLog.set(dateID, requestsGroup.delete(requestToDelete));
-    setRequestLog(newRequestLog);
+    const newRequestsGroup = requestsGroup.delete(requestToDelete);
+    let newRequestLog;
+    if (newRequestsGroup.isEmpty()) {
+      newRequestLog = requestLog.delete(dateID);
+    } else {
+      newRequestLog = requestLog.set(dateID, newRequestsGroup);
+    }
+    return newRequestLog;
   };
 
   const clearRequestLog = () => {
@@ -256,7 +282,7 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
     setRequestLog(Map({}));
   };
 
-  const getTimestampDate = (timestamp: Date): string => {
+  const getDateID = (timestamp: Date): string => {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     return timestamp.toLocaleDateString('en-US', options);
   };
@@ -284,9 +310,25 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
     }
   };
 
+  const getTotalLogCount = () => {
+    let count = 0;
+    requestLog
+      .keySeq()
+      .toArray()
+      .forEach((dateID: string) => {
+        count += requestLog.get(dateID).size;
+      });
+    return count;
+  };
+
   const getFilteredRequestLogs = (requests: List<IRequestHistory>, query: string) => {
     return requests.filter((request) => request.path.includes(query));
   };
+
+  const sortedDateIDs = requestLog
+    .keySeq()
+    .toArray()
+    .sort((a: string, b: string) => compareByTimestamp(a, b));
 
   return (
     <div className={classes.root} data-cy="request-history-tab">
@@ -311,16 +353,13 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
           Clear
         </Button>
       </div>
-      {requestLog
-        .keySeq()
-        .toArray()
-        .sort((a: string, b: string) => compareByTimestamp(a, b))
-        .map((dateID: string) => {
-          const requests: List<IRequestHistory> = requestLog.get(dateID);
-          const filteredRequests = getFilteredRequestLogs(requests, searchText);
-          return (
+      {sortedDateIDs.map((dateID: string) => {
+        const requests: List<IRequestHistory> = requestLog.get(dateID);
+        const filteredRequests = getFilteredRequestLogs(requests, searchText);
+        return (
+          <div key={dateID}>
             <If condition={filteredRequests.size > 0}>
-              <StyledExpansionPanel key={dateID} defaultExpanded elevation={0}>
+              <StyledExpansionPanel defaultExpanded elevation={0}>
                 <StyledExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography>{dateID}</Typography>
                 </StyledExpansionPanelSummary>
@@ -331,8 +370,9 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
                 </ExpansionPanelDetails>
               </StyledExpansionPanel>
             </If>
-          );
-        })}
+          </div>
+        );
+      })}
       <ClearDialog open={clearDialogOpen} handleClose={() => setClearDialogOpen(false)} />
     </div>
   );
