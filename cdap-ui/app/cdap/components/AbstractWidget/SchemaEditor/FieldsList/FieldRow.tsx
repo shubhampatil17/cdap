@@ -61,10 +61,7 @@ const styles = (theme): StyleRules => {
 };
 
 interface IFieldRowState {
-  name: string;
-  type: string;
-  nullable: boolean;
-  typeProperties: Record<string, string>;
+  collapsed: boolean;
 }
 
 interface IFieldRowProps extends WithStyles<typeof styles> {
@@ -74,23 +71,23 @@ interface IFieldRowProps extends WithStyles<typeof styles> {
 }
 
 class FieldRowBase extends React.Component<IFieldRowProps, IFieldRowState> {
+  /**
+   * We maintain the collapsed state along in the FieldRow for two reasons.
+   *
+   * - It is not strictly associated with any specific row type. We store name, type, nullable and
+   * typeProperties on each specific types because this can be saved independent of the state
+   * of the other rows, however for collapsed is not the case. Collapsed directly affects how
+   * other rows (children) are shown or hidden.
+   *
+   * - We still don't access prop changes to FieldRow to avoid re-rendering every row during
+   * each update.
+   *
+   * So we store the collapsed here as a state variable and still pass on the collapsed state to parent so that
+   * the list gets refreshed based on the state of collapsed of this particular row.
+   */
   public state: IFieldRowState = {
-    name: '',
-    type: schemaTypes[0],
-    nullable: false,
-    typeProperties: {},
+    collapsed: this.props.field.collapsed,
   };
-
-  constructor(props) {
-    super(props);
-    const { field } = this.props;
-    this.state = {
-      name: field.name,
-      type: field.type,
-      nullable: field.nullable,
-      typeProperties: field.typeProperties,
-    };
-  }
 
   public componentWillReceiveProps() {
     return;
@@ -137,10 +134,13 @@ class FieldRowBase extends React.Component<IFieldRowProps, IFieldRowState> {
 
   public onToggleCollapse = () => {
     const { onChange, field } = this.props;
-    const { id, ancestors } = field;
+    const { id, ancestors, collapsed } = field;
     if (onChange) {
       onChange({ id, ancestors }, { type: OperationTypesEnum.COLLAPSE });
     }
+    this.setState({
+      collapsed: !collapsed,
+    });
   };
 
   public RenderSubType = (field) => {
@@ -244,11 +244,11 @@ class FieldRowBase extends React.Component<IFieldRowProps, IFieldRowState> {
                     <ErrorIcon className={classes.errorIcon} />
                   </Tooltip>
                 </If>
-                <If condition={typeof this.props.field.collapsed === 'boolean'} invisible>
-                  <If condition={this.props.field.collapsed}>
+                <If condition={typeof this.state.collapsed === 'boolean'} invisible>
+                  <If condition={this.state.collapsed}>
                     <KeyboardArrowRightIcon onClick={this.onToggleCollapse} />
                   </If>
-                  <If condition={!this.props.field.collapsed}>
+                  <If condition={!this.state.collapsed}>
                     <KeyboardArrowDownIcon onClick={this.onToggleCollapse} />
                   </If>
                 </If>

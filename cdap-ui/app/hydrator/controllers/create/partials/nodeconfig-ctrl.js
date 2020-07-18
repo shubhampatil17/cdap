@@ -51,6 +51,13 @@ class HydratorPlusPlusNodeConfigCtrl {
     this.previewId = this.getPreviewId();
     this.previewStatus = null;
     this.getStagesAndConnections = this.getStagesAndConnections.bind(this);
+    this.getIsMacroEnabled = this.getIsMacroEnabled.bind(this);
+    this.onImportSchema = this.onImportSchema.bind(this);
+    this.onClearSchema = this.onClearSchema.bind(this);
+    this.onPropagateSchema = this.onPropagateSchema.bind(this);
+    this.onMacroEnabled = this.onMacroEnabled.bind(this);
+    this.onSchemaChange = this.onSchemaChange.bind(this);
+    this.onSchemaImportLinkClick = this.onSchemaImportLinkClick.bind(this);
     this.tabs = [
       {
         label: 'Properties',
@@ -409,6 +416,7 @@ class HydratorPlusPlusNodeConfigCtrl {
     reader.onload = (evt) => {
       let data = evt.target.result;
       this.EventPipe.emit('schema.import', data);
+      this.eventEmitter.emit('schema.import', data);
     };
   }
   onSchemaImportLinkClick() {
@@ -416,6 +424,7 @@ class HydratorPlusPlusNodeConfigCtrl {
   }
   exportSchema() {
     this.EventPipe.emit('schema.export');
+    this.eventEmitter.emit('schema.export');
   }
 
   validateSchema() {
@@ -546,19 +555,6 @@ class HydratorPlusPlusNodeConfigCtrl {
     return this.ConfigStore.getConfigForExport().config;
   }
 
-  // MACRO ENABLED SCHEMA
-  toggleAdvance() {
-    if (this.state.node.outputSchema.length > 0) {
-      try {
-        this.avsc.parse(this.state.node.outputSchema[0].schema, { wrapUnions: true });
-      } catch (e) {
-        this.state.node.outputSchema = [this.HydratorPlusPlusNodeService.getOutputSchemaObj('')];
-      }
-    }
-
-    this.state.schemaAdvance = !this.state.schemaAdvance;
-  }
-
   // TOOLTIPS FOR DISABLED SCHEMA ACTIONS
   getImportDisabledTooltip() {
     if (this.datasetAlreadyExists) {
@@ -585,6 +581,82 @@ class HydratorPlusPlusNodeConfigCtrl {
       return 'Clearing a schema in Advanced mode is not supported';
     }
     return '';
+  }
+  getIsMacroEnabled() {
+    return (
+      !this.$scope.isDisabled &&
+      this.state.node._backendProperties["schema"] &&
+      this.state.node._backendProperties["schema"].macroSupported
+    );
+  }
+  onClearSchema() {
+    this.state.node.outputSchema = [{ name: 'etlSchemaBody', schema: ''}];
+  }
+  onPropagateSchema() {
+    this.showPropagateConfirm = true;
+    this.$scope.$digest();
+  }
+  onMacroEnabled() {
+    this.state.schemaAdvance = !this.state.schemaAdvance;
+  }
+  onSchemaChange(outputSchemas) {
+    this.state.node.outputSchema = outputSchemas;
+  }
+  onImportSchema(stringifiedSchema) {
+    try {
+      this.state.node.outputSchema = JSON.parse(stringifiedSchema);
+      if (!Array.isArray(this.state.node.outputSchema)) {
+        this.state.node.outputSchema = [this.state.node.outputSchema];
+      }
+    } catch(e) {
+      this.state.node.outputSchema = [{ name: 'etlSchemaBody', schema: ''}];
+    }
+    this.$scope.$digest();
+  }
+  getActionsDropdownMap() {
+    let actionsMap = {};
+    if (this.getIsMacroEnabled()) {
+      actionsMap['macro'] = {
+        value: 'macro',
+        label: this.state.schemaAdvance ? 'Editor' : 'Macro',
+        disabled: this.datasetAlreadyExists,
+        tooltip: this.datasetAlreadyExists ? `The dataset '${this.datasetId}' already exists. Its schema cannot be modified.` : '',
+        onClick: this.onMacroEnabled.bind(this),
+      };
+    }
+    actionsMap = Object.assign({}, actionsMap, {
+      import: {
+        value: 'import',
+        label: 'Import',
+        disabled: this.datasetAlreadyExists || this.state.schemaAdvance,
+        tooltip: this.getImportDisabledTooltip(),
+        onClick: this.onSchemaImportLinkClick.bind(this),
+      },
+      export: {
+        value: 'export',
+        label: 'Export',
+        disabled: this.state.schemaAdvance,
+        tooltip: this.state.schemaAdvance ? "Exporting a schema in Advanced mode is not supported" : '',
+        onClick: this.exportSchema.bind(this),
+      },
+      propagate: {
+        value: 'propagate',
+        label: 'Propagate',
+        disabled:
+          this.state.schemaAdvance ||
+          this.state.node.type === "splittertransform",
+        tooltip: this.getPropagateDisabledTooltip(),
+        onClick: this.onPropagateSchema.bind(this),
+      },
+      clear: {
+        value: 'clear',
+        label: 'Clear',
+        disabled: this.datasetAlreadyExists || this.state.schemaAdvance,
+        tooltip: this.getClearDisabledTooltip(),
+        onClick: this.onClearSchema.bind(this),
+      },
+    });
+    return actionsMap;
   }
 }
 

@@ -21,69 +21,6 @@
       <li class="text-danger" ng-repeat="error in HydratorPlusPlusNodeConfigCtrl.state.errors">{{ error }}</li>
     </ul>
   </div>
-  <h4>
-    <span ng-if="!HydratorPlusPlusNodeConfigCtrl.state.isSink">Output Schema</span>
-    <span ng-if="HydratorPlusPlusNodeConfigCtrl.state.isSink">Schema</span>
-
-    <span class="fa fa-asterisk ng-scope" ng-if="HydratorPlusPlusNodeConfigCtrl.state.groupsConfig.outputSchema.isOutputSchemaRequired"></span>
-
-    <div class="pull-right" data-cy="schema-action-button" uib-dropdown>
-      <button class="btn btn-default" uib-dropdown-toggle>
-        <span>Actions</span>
-        <span class="fa fa-chevron-down"></span>
-      </button>
-
-      <ul class="output-schema-actions" uib-dropdown-menu>
-        <li
-          ng-if="!isDisabled && HydratorPlusPlusNodeConfigCtrl.state.node._backendProperties['schema'] && HydratorPlusPlusNodeConfigCtrl.state.node._backendProperties['schema'].macroSupported"
-          ng-class="{'disabled': HydratorPlusPlusNodeConfigCtrl.datasetAlreadyExists}"
-          uib-tooltip="The dataset '{{HydratorPlusPlusNodeConfigCtrl.datasetId}}' already exists. Its schema cannot be modified."
-          tooltip-placement="top"
-          tooltip-enable="HydratorPlusPlusNodeConfigCtrl.datasetAlreadyExists"
-          tooltip-append-to-body="true">
-          <a href="" ng-click="HydratorPlusPlusNodeConfigCtrl.toggleAdvance()" data-cy="toggle-schema-editor">
-            <span ng-if="!HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance">Macro</span>
-            <span ng-if="HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance">Schema Editor</span>
-          </a>
-        </li>
-        <li
-          ng-if="(!HydratorPlusPlusNodeConfigCtrl.state.groupsConfig.outputSchema.implicitSchema && !isDisabled)"
-          ng-class="{'disabled': HydratorPlusPlusNodeConfigCtrl.datasetAlreadyExists || HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance}"
-          uib-tooltip="{{HydratorPlusPlusNodeConfigCtrl.getImportDisabledTooltip()}}"
-          tooltip-placement="top"
-          tooltip-enable="HydratorPlusPlusNodeConfigCtrl.datasetAlreadyExists || HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance"
-          tooltip-append-to-body="true">
-          <a href="#" ng-click="HydratorPlusPlusNodeConfigCtrl.onSchemaImportLinkClick()">Import</a>
-        </li>
-        <li
-          ng-class="{'disabled': HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance}"
-          uib-tooltip="Exporting a schema in Advanced mode is not supported"
-          tooltip-placement="top"
-          tooltip-enable="HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance"
-          tooltip-append-to-body="true">
-          <a href="" ng-click="HydratorPlusPlusNodeConfigCtrl.exportSchema()">Export</a>
-        </li>
-        <li
-          ng-if="!isDisabled && !HydratorPlusPlusNodeConfigCtrl.state.isSink"
-          ng-class="{'disabled': HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance || HydratorPlusPlusNodeConfigCtrl.state.node.type === 'splittertransform'}"
-          uib-tooltip="{{HydratorPlusPlusNodeConfigCtrl.getPropagateDisabledTooltip()}}"
-          tooltip-placement="top"
-          tooltip-enable="HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance || HydratorPlusPlusNodeConfigCtrl.state.node.type === 'splittertransform'">
-          <a href="" ng-click="HydratorPlusPlusNodeConfigCtrl.showPropagateConfirm = true">Propagate</a>
-        </li>
-        <li
-          ng-if="(!HydratorPlusPlusNodeConfigCtrl.state.groupsConfig.outputSchema.implicitSchema && !isDisabled)"
-          ng-class="{'disabled': HydratorPlusPlusNodeConfigCtrl.datasetAlreadyExists || HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance}"
-          uib-tooltip="{{HydratorPlusPlusNodeConfigCtrl.getClearDisabledTooltip()}}"
-          tooltip-placement="top"
-          tooltip-enable="HydratorPlusPlusNodeConfigCtrl.datasetAlreadyExists || HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance"
-          tooltip-append-to-body="true">
-          <a href="" ng-click="HydratorPlusPlusNodeConfigCtrl.schemaClear()">Clear</a>
-        </li>
-      </ul>
-    </div>
-  </h4>
-
   <fieldset class="clearfix" ng-disabled="isDisabled">
     <div class="schema-propagation-confirm">
       <div class="well well-xs" ng-if="HydratorPlusPlusNodeConfigCtrl.showPropagateConfirm">
@@ -94,15 +31,21 @@
         </div>
       </div>
     </div>
-    <my-output-schema
+    <!-- <my-output-schema
       schema-advance="HydratorPlusPlusNodeConfigCtrl.state.schemaAdvance"
       node="HydratorPlusPlusNodeConfigCtrl.state.node"
       groups-config="HydratorPlusPlusNodeConfigCtrl.state.groupsConfig"
       update-default-output-schema="HydratorPlusPlusNodeConfigCtrl.updateDefaultOutputSchema(outputSchema)"
       is-disabled="isDisabled || HydratorPlusPlusNodeConfigCtrl.datasetAlreadyExists"
       errors="HydratorPlusPlusNodeConfigCtrl.outputSchemaErrors">
-    </my-output-schema>
+    </my-output-schema> -->
   </fieldset>
+  <plugin-schema-editor
+    schemas="HydratorPlusPlusNodeConfigCtrl.state.node.outputSchema"
+    on-schema-change="HydratorPlusPlusNodeConfigCtrl.onSchemaChange"
+    actions-dropdown-map="HydratorPlusPlusNodeConfigCtrl.getActionsDropdownMap()">
+  </plugin-schema-editor>
+
 </div>
 
 <my-file-select class="sr-only" id="schema-import-link" data-button-icon="fa-upload" on-file-select="HydratorPlusPlusNodeConfigCtrl.importFiles($files)" data-button-label="Import">

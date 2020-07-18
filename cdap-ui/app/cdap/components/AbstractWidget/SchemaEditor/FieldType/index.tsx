@@ -73,12 +73,13 @@ const FieldTypeBase = ({
     onChange('nullable', checked);
   };
   const onChangeHandler = (newValue, _, keyPressKeyCode) => {
+    if (newValue !== fieldName) {
+      setFieldName(newValue);
+      onChange('name', newValue);
+    }
     if (keyPressKeyCode === 13) {
       onAdd();
-      return;
     }
-    setFieldName(newValue);
-    onChange('name', newValue);
   };
 
   const onTypeChangeHandler = (newValue) => {

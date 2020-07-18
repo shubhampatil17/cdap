@@ -35,6 +35,11 @@ import {
   SchemaValidatorProvider,
 } from 'components/AbstractWidget/SchemaEditor/SchemaValidator';
 import { dumbestClone } from 'services/helpers';
+import PropTypes from 'prop-types';
+import {
+  getDefaultEmptyAvroSchema,
+  OperationTypesEnum,
+} from 'components/AbstractWidget/SchemaEditor/SchemaConstants';
 
 const styles = (): StyleRules => {
   return {
@@ -63,8 +68,8 @@ class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditor
   private schema: ISchemaManager = null;
   constructor(props) {
     super(props);
-    const { options } = props;
-    this.schema = SchemaManager(this.props.schema, options).getInstance();
+    const { schema = getDefaultEmptyAvroSchema(), options } = props;
+    this.schema = SchemaManager(schema, options).getInstance();
     this.state = {
       flat: dumbestClone(this.schema.getFlatSchema()),
       tree: dumbestClone(this.schema.getSchemaTree()),
@@ -72,18 +77,17 @@ class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditor
   }
 
   public componentWillReceiveProps(nextProps) {
-    this.schema = SchemaManager(nextProps.schema).getInstance();
-    this.setState({
-      flat: dumbestClone(this.schema.getFlatSchema()),
-      tree: dumbestClone(this.schema.getSchemaTree()),
-    });
+    return;
   }
   public onChange = (validate, fieldId: IFieldIdentifier, onChangePayload: IOnChangePayload) => {
     const { fieldIdToFocus } = this.schema.onChange(fieldId, onChangePayload);
     this.setState({
-      flat: [...this.schema.getFlatSchema()],
-      tree: { ...this.schema.getSchemaTree() },
+      flat: this.schema.getFlatSchema(),
+      tree: this.schema.getSchemaTree(),
     });
+    if (onChangePayload.type === OperationTypesEnum.COLLAPSE) {
+      return { fieldIdToFocus };
+    }
     this.props.onChange({
       tree: this.schema.getSchemaTree(),
       flat: this.schema.getFlatSchema(),
@@ -121,5 +125,10 @@ function SchemaEditor(props) {
     </ThemeWrapper>
   );
 }
+
+SchemaEditor.propTypes = {
+  schema: PropTypes.object,
+  onChange: PropTypes.func,
+};
 
 export { SchemaEditor };

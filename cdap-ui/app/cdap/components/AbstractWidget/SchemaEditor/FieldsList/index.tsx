@@ -54,8 +54,8 @@ class FieldsListBase extends React.Component<IFieldsListProps, IFieldsListState>
     currentRowToFocus: null,
   };
   public componentWillReceiveProps(nextProps: IFieldsListProps) {
-    const ids = nextProps.value.map((r) => `${r.id}-${r.hidden}`).join(',');
-    const existingids = this.state.rows.map((r) => `${r.id}-${r.hidden}`).join(',');
+    const ids = nextProps.value.map((r) => `${r.id}-${r.hidden}-${r.collapsed}`).join(',');
+    const existingids = this.state.rows.map((r) => `${r.id}-${r.hidden}-${r.collapsed}`).join(',');
     if (ids !== existingids) {
       this.setState({
         rows: nextProps.value,

@@ -50,6 +50,9 @@ const EnumTypeBase = ({
       onAdd();
       return;
     }
+    if (enumSymbol === newValue) {
+      return;
+    }
     setEnumSymbol(newValue);
     onChange('typeProperties', {
       symbol: newValue,
