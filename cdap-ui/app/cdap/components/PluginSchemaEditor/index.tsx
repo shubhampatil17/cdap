@@ -25,10 +25,14 @@ import PropTypes from 'prop-types';
 import LoadingSVG from 'components/LoadingSVG';
 import If from 'components/If';
 import Textbox from 'components/AbstractWidget/FormInputs/TextBox';
-import startCase from 'lodash/startCase';
+import { RefreshableSchemaEditor } from 'components/PluginSchemaEditor/RefreshableSchemaEditor';
+import ConfigurableTab from 'components/ConfigurableTab';
 
 const styles = (theme): StyleRules => {
   return {
+    container: {
+      display: 'block',
+    },
     header: {
       display: 'grid',
       gridTemplateColumns: '75% 25%',
@@ -227,37 +231,71 @@ class PluginSchemaEditorBase extends React.Component<
     }
   };
 
+  private santizeSchemasForEditor = () => {
+    return (this.state.schemas || []).map((s) => {
+      const newSchema = {
+        name: s.name,
+        schema: s.schema,
+      };
+      if (typeof s.schema === 'string') {
+        try {
+          newSchema.schema = JSON.parse(s.schema);
+        } catch (e) {
+          return { ...getDefaultEmptyAvroSchema() };
+        }
+      }
+      return newSchema;
+    });
+  };
+
+  public renderSchemaIntabs = () => {
+    const tabs = this.santizeSchemasForEditor().map((s, i) => {
+      return {
+        id: i,
+        name: s.name,
+        content: (
+          <RefreshableSchemaEditor
+            schema={s}
+            onChange={({ avroSchema }) => {
+              const newSchemas = [...this.props.schemas];
+              newSchemas[i] = avroSchema;
+              newSchemas[i].schema = JSON.stringify(newSchemas[i].schema);
+              this.props.onSchemaChange(newSchemas);
+            }}
+          />
+        ),
+      };
+    });
+    const tabProps = {
+      activeTab: 0,
+      tabConfig: {
+        tabs,
+        layout: 'horizontal',
+        defaultTab: 0,
+      },
+    };
+    return <ConfigurableTab activeTab={tabProps.activeTab} tabConfig={tabProps.tabConfig} />;
+  };
+
   public renderSchemaEditors = () => {
     if (this.state.loading || this.state.mode === IPluginSchemaEditorModes.Macro) {
       return null;
     }
 
-    return (this.state.schemas || [])
-      .map((s) => {
-        const newSchema = {
-          name: s.name,
-          schema: s.schema,
-        };
-        if (typeof s.schema === 'string') {
-          try {
-            newSchema.schema = JSON.parse(s.schema);
-          } catch (e) {
-            return { ...getDefaultEmptyAvroSchema() };
-          }
-        }
-        return newSchema;
-      })
-      .map((schema, i) => (
-        <SchemaEditor
-          schema={schema}
-          onChange={({ avroSchema }) => {
-            const newSchemas = [...this.props.schemas];
-            newSchemas[i] = avroSchema;
-            newSchemas[i].schema = JSON.stringify(newSchemas[i].schema);
-            this.props.onSchemaChange(newSchemas);
-          }}
-        />
-      ));
+    if (this.state.schemas.length > 1) {
+      return this.renderSchemaIntabs();
+    }
+    return this.santizeSchemasForEditor().map((schema, i) => (
+      <SchemaEditor
+        schema={schema}
+        onChange={({ avroSchema }) => {
+          const newSchemas = [...this.props.schemas];
+          newSchemas[i] = avroSchema;
+          newSchemas[i].schema = JSON.stringify(newSchemas[i].schema);
+          this.props.onSchemaChange(newSchemas);
+        }}
+      />
+    ));
   };
 
   public renderMacroEditor = () => {
@@ -283,7 +321,7 @@ class PluginSchemaEditorBase extends React.Component<
   public render() {
     const { classes } = this.props;
     return (
-      <div>
+      <div className={classes.container}>
         <div className={classes.header}>
           <div className={classes.title}>Output Schema</div>
           <Select

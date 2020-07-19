@@ -246,45 +246,40 @@
                   > p,
                   .validator-plugin > div { padding: 20px 10px; }
                   div.config-table {
-                    display: table;
+                    display: grid;
                     width: 100%;
                     height: ~"calc(100vh - 240px)";
                     height: ~"-moz-calc(100vh - 240px)";
                     height: ~"-webkit-calc(100vh - 240px)";
 
                     > div {
-                      display: table-cell;
                       padding: 20px 10px;
                       vertical-align: top;
                     }
                   }
                   div.source-table {
+                    grid-template-columns: 67% 33%;
                     > div {
                       &:first-child {
                         border-right: 1px solid @table-border-color;
-                        width: 66.66666667%;
                       }
-                      &:last-child { width: 33.33333333%; }
                     }
                   }
                   div.transform-table {
+                    grid-template-columns: minmax(250px, 25%) 50% minmax(250px, 25%);
                     > div {
-                      &:first-child,
-                      &:last-child { width: 25%; }
                       &:nth-child(2) {
-                        width: 50%;
                         border-right: 1px solid @table-border-color;
                         border-left: 1px solid @table-border-color;
                       }
                     }
                   }
                   div.sink-table {
+                    grid-template-columns: 33% 67%;
                     > div {
                       &:first-child {
                         border-right: 1px solid @table-border-color;
-                        width: 33.33333333%;
                       }
-                      &:last-child { width: 66.66666667%; }
                     }
                   }
                 }

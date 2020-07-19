@@ -84,9 +84,10 @@ function parseUnionType(type): IOrderedChildren {
     } else {
       result[id] = {
         id,
-        type: subType,
+        type: getSimpleType(subType),
         nullable: false,
         internalType: InternalTypesEnum.UNION_SIMPLE_TYPE,
+        ...checkForLogicalType({ type: subType }),
       };
     }
   }
@@ -116,7 +117,8 @@ function parseArrayType(type): IOrderedChildren {
         internalType: InternalTypesEnum.ARRAY_SIMPLE_TYPE,
         id,
         nullable: isNullable(t.items),
-        type: getNonNullableType(t.items),
+        type: getSimpleType(getNonNullableType(t.items)),
+        ...checkForLogicalType({ type: t.items }),
       },
     };
   }
@@ -184,7 +186,8 @@ function getMapSubType(type, internalTypeName): INode {
       id,
       internalType: internalTypeName.simpleType,
       nullable: isNullable(type),
-      type: getNonNullableType(type),
+      type: getSimpleType(getNonNullableType(type)),
+      ...checkForLogicalType({ type }),
     };
   } else {
     const complexType = getComplexTypeName(type);
@@ -298,7 +301,7 @@ function parseComplexType(type): IOrderedChildren {
  *  children and will have type properties that map the logical property to underlying type.
  * @param field - field in the schema.
  */
-function checkForLogicalType(field: IFieldType | IFieldTypeNullable) {
+function checkForLogicalType(field: Partial<IFieldType | IFieldTypeNullable>) {
   let type = field.type;
   type = getNonNullableType(type) as ILogicalTypeBase;
   switch (type.logicalType) {
