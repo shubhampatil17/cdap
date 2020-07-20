@@ -20,7 +20,7 @@ import { IRequestHistory } from 'components/HttpExecutor/RequestHistoryTab';
 import moment from 'moment';
 
 export function getDateID(date: Date) {
-  return moment(date).format('dddd, MMMM d, YYYY');
+  return moment(date).format('dddd, MMMM D, YYYY');
 }
 
 export function getRequestsByDate(log: Map<string, List<IRequestHistory>>, dateID: string) {

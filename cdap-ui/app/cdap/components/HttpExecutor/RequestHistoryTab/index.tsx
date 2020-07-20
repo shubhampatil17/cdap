@@ -112,12 +112,12 @@ const styles = (theme): StyleRules => {
   };
 };
 
-const StyledExpansionPanel = withStyles(() => ({
+const StyledExpansionPanel = withStyles((theme) => ({
   root: {
     '&$expanded': {
       margin: 0,
     },
-    borderBottom: '1px solid #C0C0C0',
+    borderBottom: `1px solid ${theme.palette.grey[300]}`,
   },
   /* Styles applied to the root element if `expanded={true}`. */
   expanded: {},
