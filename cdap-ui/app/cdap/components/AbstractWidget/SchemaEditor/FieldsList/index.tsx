@@ -35,11 +35,13 @@ const styles = (): StyleRules => {
 };
 
 interface IFieldsListState {
+  visibleRowCount: number;
   rows: IFlattenRowType[];
   currentRowToFocus: string;
 }
 
 interface IFieldsListProps extends WithStyles<typeof styles> {
+  visibleRowCount?: number;
   disabled?: boolean;
   value: IFlattenRowType[];
   onChange: (id: IFieldIdentifier, onChangePayload: IOnChangePayload) => IOnChangeReturnType;
@@ -53,6 +55,7 @@ class FieldsListBase extends React.Component<IFieldsListProps, IFieldsListState>
   public state: IFieldsListState = {
     rows: this.props.value || [],
     currentRowToFocus: null,
+    visibleRowCount: this.props.visibleRowCount || FieldsListBase.visibleNodeCount,
   };
   public componentWillReceiveProps(nextProps: IFieldsListProps) {
     const ids = nextProps.value.map((r) => `${r.id}-${r.hidden}-${r.collapsed}`).join(',');
@@ -99,6 +102,7 @@ class FieldsListBase extends React.Component<IFieldsListProps, IFieldsListState>
   public render() {
     const itemCount = this.state.rows.filter((field) => !field.hidden).length;
     const { classes } = this.props;
+    console.log('Rendering fields list');
     return (
       <SiblingCommunicationProvider>
         <SchemaValidatorConsumer>
@@ -112,7 +116,7 @@ class FieldsListBase extends React.Component<IFieldsListProps, IFieldsListState>
         </SchemaValidatorConsumer>
         <VirtualScroll
           itemCount={() => itemCount}
-          visibleChildCount={FieldsListBase.visibleNodeCount}
+          visibleChildCount={this.state.visibleRowCount}
           childHeight={FieldsListBase.heightOfRow}
           renderList={this.renderList.bind(this)}
           childrenUnderFold={FieldsListBase.childrenUnderFold}
@@ -122,4 +126,4 @@ class FieldsListBase extends React.Component<IFieldsListProps, IFieldsListState>
   }
 }
 const FieldsList = withstyles(styles)(FieldsListBase);
-export { FieldsList };
+export { FieldsList, FieldsListBase };

@@ -29,11 +29,13 @@ import { RefreshableSchemaEditor } from 'components/PluginSchemaEditor/Refreshab
 import ConfigurableTab from 'components/ConfigurableTab';
 import classnames from 'classnames';
 import { objectQuery } from 'services/helpers';
+import { FieldsListBase } from 'components/AbstractWidget/SchemaEditor/FieldsList';
 
 const styles = (theme): StyleRules => {
   return {
     container: {
       display: 'block',
+      height: '100%',
     },
     fieldset: {
       '&[disabled] *': {
@@ -46,7 +48,7 @@ const styles = (theme): StyleRules => {
     },
     header: {
       display: 'grid',
-      gridTemplateColumns: '75% 25%',
+      gridTemplateColumns: '70% 30%',
       alignItems: 'center',
       margin: '-15px -10px 5px -10px',
       padding: '0 10px 5px;',
@@ -103,6 +105,7 @@ interface IPluginSchemaEditorState {
   schemas: IPluginSchema[];
   mode: IPluginSchemaEditorModes;
   loading: boolean;
+  schemaRowCount: number;
 }
 
 interface IPluginSchemaEditorProps extends WithStyles<typeof styles> {
@@ -114,13 +117,14 @@ interface IPluginSchemaEditorProps extends WithStyles<typeof styles> {
   isSchemaMacro?: boolean;
 }
 
-class PluginSchemaEditorBase extends React.Component<
+class PluginSchemaEditorBase extends React.PureComponent<
   IPluginSchemaEditorProps,
   IPluginSchemaEditorState
 > {
   private actions: IActionsOptionsObj[] = Object.values(this.props.actionsDropdownMap).map(
     (value) => value
   );
+  private containerRef;
 
   private getMode = () => {
     if (this.props.disabled) {
@@ -137,6 +141,7 @@ class PluginSchemaEditorBase extends React.Component<
     schemas: this.props.schemas,
     loading: false,
     mode: this.getMode(),
+    schemaRowCount: null,
   };
 
   private ee = ee(ee);
@@ -151,6 +156,45 @@ class PluginSchemaEditorBase extends React.Component<
 
   public componentWillReceiveProps(nextProps: IPluginSchemaEditorProps) {
     this.actions = Object.values(nextProps.actionsDropdownMap).map((value) => value);
+    return;
+  }
+
+  public shouldComponentUpdate(nextProps: IPluginSchemaEditorProps, nextState) {
+    const { disabled, isSchemaMacro, actionsDropdownMap, schemas } = nextProps;
+    const { schemaRowCount, loading, mode } = nextState;
+    const newActions = Object.values(actionsDropdownMap)
+      .filter((value) => typeof value === 'string')
+      .join('--');
+    const existingActions = Object.values(this.props.actionsDropdownMap)
+      .filter((value) => typeof value === 'string')
+      .join('--');
+    const existingSchemas = this.props.schemas.map((s) => s.schema).join('__');
+    const newSchemas = schemas.map((s) => s.schema).join('__');
+
+    const didPropsChange =
+      disabled !== this.props.disabled ||
+      isSchemaMacro !== this.props.isSchemaMacro ||
+      newActions !== existingActions ||
+      newSchemas !== existingSchemas;
+
+    const didStateChange =
+      schemaRowCount !== this.state.schemaRowCount ||
+      loading !== this.state.loading ||
+      mode !== this.state.mode;
+    return didStateChange || didPropsChange;
+  }
+
+  public componentDidMount() {
+    console.log('Cmponent did mount');
+    if (this.containerRef) {
+      const { height } = this.containerRef.getBoundingClientRect();
+      let schemaRowCount = Math.floor(height / FieldsListBase.heightOfRow) - 1;
+      // For sinks we can't determine the height. So set it to by default 20 (20 * 34 = 680px in height)
+      if (schemaRowCount < 20) {
+        schemaRowCount = 20;
+      }
+      this.setState({ schemaRowCount });
+    }
   }
 
   public componentWillUnmount() {
@@ -185,6 +229,7 @@ class PluginSchemaEditorBase extends React.Component<
   };
 
   private onSchemaImport = (schemas) => {
+    console.log('on import??');
     if (this.state.mode === IPluginSchemaEditorModes.Macro) {
       return;
     }
@@ -289,8 +334,9 @@ class PluginSchemaEditorBase extends React.Component<
         id: i,
         name: s.name,
         content: (
-          <fieldset disabled={this.props.disabled} className={this.props.classes.fieldset}>
+          <fieldset disabled={this.props.disabled} className={this.props.classes.fieldset} key={i}>
             <RefreshableSchemaEditor
+              visibleRows={this.state.schemaRowCount}
               schema={s}
               disabled={this.props.disabled}
               onChange={({ avroSchema }) => {
@@ -318,7 +364,11 @@ class PluginSchemaEditorBase extends React.Component<
   };
 
   public renderSchemaEditors = () => {
-    if (this.state.loading || this.state.mode === IPluginSchemaEditorModes.Macro) {
+    if (
+      this.state.loading ||
+      this.state.mode === IPluginSchemaEditorModes.Macro ||
+      !this.state.schemaRowCount
+    ) {
       return null;
     }
     if (this.state.schemas.length > 1) {
@@ -330,6 +380,8 @@ class PluginSchemaEditorBase extends React.Component<
     return this.santizeSchemasForEditor().map((schema, i) => (
       <fieldset disabled={this.props.disabled} className={this.props.classes.fieldset}>
         <SchemaEditor
+          key={i}
+          visibleRows={this.state.schemaRowCount}
           schema={schema}
           disabled={this.props.disabled}
           onChange={({ avroSchema }) => {
@@ -344,7 +396,11 @@ class PluginSchemaEditorBase extends React.Component<
   };
 
   public renderMacroEditor = () => {
-    if (this.state.loading || this.state.mode === IPluginSchemaEditorModes.Editor) {
+    if (
+      this.state.loading ||
+      this.state.mode === IPluginSchemaEditorModes.Editor ||
+      !this.state.schemaRowCount
+    ) {
       return null;
     }
     const macro = this.state.schemas[0].schema;
@@ -390,9 +446,10 @@ class PluginSchemaEditorBase extends React.Component<
   };
 
   public render() {
+    console.log('Rendering PLugin Schema Editor');
     const { classes } = this.props;
     return (
-      <div className={classes.container}>
+      <div className={classes.container} ref={(ref) => (this.containerRef = ref)}>
         {this.renderHeader()}
         <If condition={this.state.loading}>
           <div className={classes.loadingContainer}>

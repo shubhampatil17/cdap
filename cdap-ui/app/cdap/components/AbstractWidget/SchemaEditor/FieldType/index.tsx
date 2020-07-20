@@ -112,7 +112,13 @@ const FieldTypeBase = ({
           disabled={disabled}
           value={fieldType}
           onChange={onTypeChangeHandler}
-          widgetProps={{ options: schemaTypes, dense: true }}
+          widgetProps={{
+            options: schemaTypes,
+            dense: true,
+            fullWidth: false,
+            inputProps: { title: fieldType },
+            native: true,
+          }}
         />
       </FieldInputWrapper>
       <RowButtons

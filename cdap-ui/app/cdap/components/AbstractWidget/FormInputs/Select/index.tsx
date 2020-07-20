@@ -14,7 +14,7 @@
  * the License.
  */
 import React from 'react';
-import Select from '@material-ui/core/Select';
+import Select, { SelectProps } from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import InputBase from '@material-ui/core/InputBase';
 import { IWidgetProps } from 'components/AbstractWidget';
@@ -71,7 +71,7 @@ interface ISelectOptions {
   label: string;
 }
 
-interface ISelectWidgetProps {
+interface ISelectWidgetProps extends SelectProps {
   options: ISelectOptions[] | string[] | number[];
   dense?: boolean;
   inline?: boolean;
@@ -104,7 +104,8 @@ const CustomSelect: React.FC<ISelectProps> = ({
   const options = objectQuery(widgetProps, 'options') || objectQuery(widgetProps, 'values') || [];
   const dense = objectQuery(widgetProps, 'dense') || false;
   const inline = objectQuery(widgetProps, 'inline') || false;
-  const OptionItem = dense ? DenseMenuItem : MenuItem;
+  const native = objectQuery(widgetProps, 'native') || false;
+  const OptionItem = native ? 'option' : dense ? DenseMenuItem : MenuItem;
   const SelectComponent = inline ? InlineSelect : Select;
   let optionValues = options.map((opt) => {
     return ['string', 'number'].indexOf(typeof opt) !== -1 ? { value: opt, label: opt } : opt;
@@ -132,7 +133,7 @@ const CustomSelect: React.FC<ISelectProps> = ({
       }}
       displayEmpty={!isNilOrEmptyString(placeholder)}
       inputRef={inputRef}
-      {...restProps}
+      {...widgetProps}
     >
       {optionValues.map((opt) => {
         const option = (

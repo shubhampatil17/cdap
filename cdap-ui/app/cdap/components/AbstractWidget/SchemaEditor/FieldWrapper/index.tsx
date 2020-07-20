@@ -134,7 +134,7 @@ const FieldInputWrapperBase = withStyles(() => {
   return {
     root: {
       display: 'grid',
-      gridTemplateColumns: 'calc(100% - 100px) 100px',
+      gridTemplateColumns: '60% 40%',
     },
   };
 })(Box);

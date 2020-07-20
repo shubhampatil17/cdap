@@ -220,7 +220,7 @@
               }
               .bottompanel-body {
                 padding: 0 10px 10px 10px;
-                overflow-y: auto;
+                overflow-y: hidden;
                 height: ~"calc(100vh - 180px)";
                 height: ~"-moz-calc(100vh - 180px)";
                 height: ~"-webkit-calc(100vh - 180px)";
@@ -248,13 +248,17 @@
                   div.config-table {
                     display: grid;
                     width: 100%;
-                    height: ~"calc(100vh - 240px)";
-                    height: ~"-moz-calc(100vh - 240px)";
-                    height: ~"-webkit-calc(100vh - 240px)";
+                    height: ~"calc(100vh - 180px)";
+                    height: ~"-moz-calc(100vh - 180px)";
+                    height: ~"-webkit-calc(100vh - 180px)";
 
                     > div {
                       padding: 10px 10px;
                       vertical-align: top;
+                      overflow-y: auto;
+                      .output-schema-container {
+                        height: 100%;
+                      }
                     }
                   }
                   div.source-table {
@@ -411,9 +415,9 @@ body.theme-cdap {
               .console-type {
                 .node-config {
                   div.config-table {
-                    height: ~"calc(100vh - 240px)";
-                    height: ~"-moz-calc(100vh - 240px)";
-                    height: ~"-webkit-calc(100vh - 240px)";
+                    height: ~"calc(100vh - 180px)";
+                    height: ~"-moz-calc(100vh - 180px)";
+                    height: ~"-webkit-calc(100vh - 180px)";
                   }
                 }
               }

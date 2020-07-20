@@ -36,6 +36,7 @@ interface IRefreshableSchemaEditor extends WithStyles<typeof styles> {
   schema: IPluginSchema;
   onChange: (schemas: IPluginSchema) => void;
   disabled?: boolean;
+  visibleRows?: number;
 }
 
 function RefreshableSchemaEditorBase({
@@ -43,6 +44,7 @@ function RefreshableSchemaEditorBase({
   onChange,
   disabled,
   classes,
+  visibleRows,
 }: IRefreshableSchemaEditor) {
   const [loading, setLoading] = React.useState(false);
   React.useEffect(() => {
@@ -57,7 +59,12 @@ function RefreshableSchemaEditorBase({
         <LoadingSVG />
       </If>
       <If condition={!loading}>
-        <SchemaEditor schema={schema} disabled={disabled} onChange={onChange} />
+        <SchemaEditor
+          schema={schema}
+          disabled={disabled}
+          onChange={onChange}
+          visibleRows={visibleRows}
+        />
       </If>
     </div>
   );

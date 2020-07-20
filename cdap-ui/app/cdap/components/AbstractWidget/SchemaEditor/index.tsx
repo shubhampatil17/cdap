@@ -51,6 +51,7 @@ const styles = (theme): StyleRules => {
 };
 
 interface ISchemaEditorProps extends WithStyles<typeof styles> {
+  visibleRows?: number;
   schema: ISchemaType;
   disabled?: boolean;
   onChange: (props: {
@@ -63,6 +64,7 @@ interface ISchemaEditorProps extends WithStyles<typeof styles> {
 interface ISchemaEditorState {
   tree: INode;
   flat: IFlattenRowType[];
+  schemaRowCount: number;
 }
 
 class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditorState> {
@@ -75,6 +77,7 @@ class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditor
     this.state = {
       flat: dumbestClone(this.schema.getFlatSchema()),
       tree: dumbestClone(this.schema.getSchemaTree()),
+      schemaRowCount: this.props.visibleRows,
     };
   }
   public componentDidMount() {
@@ -84,6 +87,12 @@ class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditor
   }
 
   public componentWillReceiveProps(nextProps) {
+    const { visibleRows } = nextProps;
+    if (visibleRows !== this.state.schemaRowCount) {
+      this.setState({
+        schemaRowCount: visibleRows,
+      });
+    }
     return;
   }
   public onChange = (validate, fieldId: IFieldIdentifier, onChangePayload: IOnChangePayload) => {
@@ -106,6 +115,7 @@ class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditor
     return { fieldIdToFocus };
   };
   public render() {
+    console.log('Rendering schema editor');
     const { flat } = this.state;
     const { classes } = this.props;
     return (
@@ -120,6 +130,7 @@ class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditor
                     value={flat}
                     onChange={this.onChange.bind(this, validate)}
                     disabled={this.props.disabled}
+                    visibleRowCount={this.state.schemaRowCount}
                   />
                 );
               }}
@@ -144,6 +155,7 @@ SchemaEditor.propTypes = {
   schema: PropTypes.object,
   onChange: PropTypes.func,
   disabled: PropTypes.bool,
+  visibleRows: PropTypes.number,
 };
 
 export { SchemaEditor };
