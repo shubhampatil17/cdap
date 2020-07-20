@@ -14,18 +14,39 @@
  * the License.
  */
 
+import * as React from 'react';
+
+import { List, Map } from 'immutable';
+import withStyles, { StyleRules, WithStyles } from '@material-ui/core/styles/withStyles';
+
 import ExpansionPanel from '@material-ui/core/ExpansionPanel';
 import ExpansionPanelActions from '@material-ui/core/ExpansionPanelActions';
 import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import withStyles, { StyleRules, WithStyles } from '@material-ui/core/styles/withStyles';
+import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
+import { REQUEST_HISTORY } from 'components/HttpExecutor/store/HttpExecutorStore';
+import { RequestMethod } from 'components/HttpExecutor';
 import Typography from '@material-ui/core/Typography';
 import classnames from 'classnames';
-import { LEFT_PANEL_WIDTH } from 'components/HttpExecutor';
-import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
-import HttpExecutorStore from 'components/HttpExecutor/store/HttpExecutorStore';
-import { List, Map } from 'immutable';
-import * as React from 'react';
 import { connect } from 'react-redux';
+import moment from 'moment';
+
+export interface IRequestHistory {
+  timestamp: string;
+  method: RequestMethod;
+  path: string;
+  body: string;
+  headers: {
+    pairs: [
+      {
+        key: string;
+        value: string;
+        uniqueId: string;
+      }
+    ];
+  };
+  response: string;
+  statusCode: number;
+}
 
 const styles = (theme): StyleRules => {
   return {
@@ -66,11 +87,14 @@ const styles = (theme): StyleRules => {
       alignSelf: 'center',
     },
     requestPath: {
-      width: `${LEFT_PANEL_WIDTH / 1.5}px`,
+      maxWidth: '80%',
+      minWidth: '80%',
       wordWrap: 'break-word',
       textAlign: 'left',
+      alignSelf: 'center',
       textTransform: 'lowercase',
       fontSize: '10px',
+      display: 'inline-block',
       lineHeight: '1.3',
     },
     getMethod: {
@@ -99,57 +123,32 @@ const StyledExpansionPanel = withStyles(() => ({
   expanded: {},
 }))(ExpansionPanel);
 
-enum RequestMethod {
-  GET = 'GET',
-  POST = 'POST',
-  PUT = 'PUT',
-  DELETE = 'DELETE',
-}
-
-interface IRequestHistory {
-  timestamp: Date;
-  method: RequestMethod;
-  path: string;
-  body: string;
-  headers: {
-    pairs: [
-      {
-        key: string;
-        value: string;
-        uniqueId: string;
-      }
-    ];
-  };
-  response: string;
-  statusCode: number;
-}
-
 interface IRequestHistoryTabProps extends WithStyles<typeof styles> {
-  incomingRequest: boolean;
+  requestLog: Map<string, List<IRequestHistory>>;
+  setRequestLog: (requestLog: Map<string, List<IRequestHistory>>) => void;
   onRequestClick: (request: IRequestHistory) => void;
-  resetIncomingRequest: () => void;
 }
 
 const mapStateToProps = (state) => {
   return {
-    incomingRequest: state.http.incomingRequest,
+    requestLog: state.http.requestLog,
   };
 };
 
 const mapDispatch = (dispatch) => {
   return {
+    setRequestLog: (requestLog: Map<string, List<IRequestHistory>>) => {
+      dispatch({
+        type: HttpExecutorActions.setRequestLog,
+        payload: {
+          requestLog,
+        },
+      });
+    },
     onRequestClick: (request: IRequestHistory) => {
       dispatch({
         type: HttpExecutorActions.setRequestHistoryView,
         payload: request,
-      });
-    },
-    resetIncomingRequest: () => {
-      dispatch({
-        type: HttpExecutorActions.notifyIncomingRequest,
-        payload: {
-          incomingRequest: false,
-        },
       });
     },
   };
@@ -157,75 +156,52 @@ const mapDispatch = (dispatch) => {
 
 const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
   classes,
-  incomingRequest,
+  requestLog,
+  setRequestLog,
   onRequestClick,
-  resetIncomingRequest,
 }) => {
-  const [requestLog, setRequestLog] = React.useState(
-    Map<string, List<IRequestHistory>>({}) // maps timestamp date (e.g. April 5th) to a list of corresponding request histories
-  );
-
   const convertDateToString = (date: Date) => {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
+    return moment(date).format('dddd, MMMM d, YYYY');
   };
 
-  // Query through localstorage and popluate RequestHistoryTab
+  // Query through localstorage to populate RequestHistoryTab
+  // requestLog maps timestamp date (e.g. April 5th) to a list of corresponding request histories, sorted by timestamp
   React.useEffect(() => {
     // Group and sort logs by timestamp
-    let newRequestLog = Map<string, any>({});
-    Object.keys(localStorage)
-      .filter((key) => key.startsWith('RequestHistory'))
-      .sort((a, b) => {
-        const timestampA = new Date(a.substr(14));
-        const timestampB = new Date(b.substr(14));
-        if (timestampA < timestampB) {
-          return 1;
-        } else if (timestampA > timestampB) {
-          return -1;
-        } else {
-          return 0;
-        }
-      })
-      .forEach((key) => {
-        const timestamp = new Date(key.substr(14));
-        const timestampInString = convertDateToString(timestamp);
-        const newRequest = JSON.parse(localStorage.getItem(key));
-        newRequest.timestamp = timestamp;
+    let newRequestLog = Map<string, List<IRequestHistory>>({});
 
-        const existingRequestHistory = newRequestLog.get(timestampInString) || List([]);
-        newRequestLog = newRequestLog.set(
-          timestampInString,
-          existingRequestHistory.push(newRequest)
-        );
-      });
-    setRequestLog(newRequestLog);
-  }, []);
-
-  // When new request history is incoming, update RequestHistoryTab
-  React.useEffect(() => {
-    if (!incomingRequest) {
-      return;
+    const storedLogs = localStorage.getItem(REQUEST_HISTORY);
+    if (storedLogs) {
+      try {
+        const savedCalls = List(JSON.parse(storedLogs));
+        savedCalls
+          .sort((a: IRequestHistory, b: IRequestHistory) => {
+            const timestampA = new Date(a.timestamp);
+            const timestampB = new Date(b.timestamp);
+            if (timestampA < timestampB) {
+              return 1;
+            } else if (timestampA > timestampB) {
+              return -1;
+            } else {
+              return 0;
+            }
+          })
+          .forEach((req: IRequestHistory) => {
+            const timestamp = new Date(req.timestamp);
+            const dateInString = convertDateToString(timestamp);
+            const existingRequestHistory = newRequestLog.get(dateInString) || List([]);
+            newRequestLog = newRequestLog.set(dateInString, existingRequestHistory.push(req));
+          });
+        setRequestLog(newRequestLog);
+      } catch (e) {
+        setRequestLog(Map({}));
+      }
+    } else {
+      // If REQUEST_HISTORY key doesn't exist in localStorage, initialize it
+      localStorage.setItem(REQUEST_HISTORY, JSON.stringify([]));
+      setRequestLog(Map({}));
     }
-    const currentDate = new Date();
-    const timestamp = `RequestHistory ${currentDate.toLocaleString()}`;
-    const newRequest = HttpExecutorStore.getState().http;
-
-    // Store new request history in local storage
-    localStorage.setItem(timestamp, JSON.stringify(newRequest));
-
-    // Update the component view in real-time, since we cannot listen to local storage's change
-    // Since the new request call is the latest out of all the request histories, insert at 0th index
-    const timestampInString = convertDateToString(currentDate);
-    const existingRequestHistory = requestLog.get(timestampInString) || List([]);
-    const newRequestLog = requestLog.set(
-      timestampInString,
-      existingRequestHistory.insert(0, newRequest)
-    );
-    setRequestLog(newRequestLog);
-
-    resetIncomingRequest();
-  }, [incomingRequest]);
+  }, []);
 
   return (
     <div className={classes.root}>
@@ -269,5 +245,4 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
 const RequestHistoryTab = withStyles(styles)(
   connect(mapStateToProps, mapDispatch)(RequestHistoryTabView)
 );
-// const RequestHistoryTab = withStyles(styles)(RequestHistoryTabView);
 export default RequestHistoryTab;

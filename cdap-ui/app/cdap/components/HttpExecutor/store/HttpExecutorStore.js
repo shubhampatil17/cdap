@@ -14,8 +14,10 @@
  * the License.
  */
 
-import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
 import { combineReducers, createStore } from 'redux';
+
+import HttpExecutorActions from 'components/HttpExecutor/store/HttpExecutorActions';
+import { List } from 'immutable';
 import uuidV4 from 'uuid/v4';
 
 const defaultAction = {
@@ -41,6 +43,48 @@ const defaultInitialState = {
   loading: false,
   activeTab: 0,
   incomingRequest: false,
+  requestLog: List([]),
+};
+
+export const REQUEST_HISTORY = 'RequestHistory';
+
+const setResponse = (state, action) => {
+  const { method, path, body, headers, requestLog } = state;
+  const { response, statusCode } = action.payload;
+
+  const newCall = {
+    method,
+    path,
+    body,
+    headers,
+    response,
+    statusCode,
+    timestamp: new Date().toLocaleString(),
+  };
+
+  const newRequestLog = requestLog.push(newCall);
+
+  //   // Update the component view in real-time, since we cannot listen to local storage's change
+  //   // Since the new request call is the latest out of all the request histories, insert at 0th index
+  //   const timestampInString = convertDateToString(currentDate);
+  //   const existingRequestHistory = requestLog.get(timestampInString) || List([]);
+  //   const newRequestLog = requestLog.set(
+  //     timestampInString,
+  //     existingRequestHistory.insert(0, newRequest)
+  //   );
+  //   setRequestLog(newRequestLog);
+
+  // saving of the request to the localStorage
+  localStorage.setItem(REQUEST_HISTORY, JSON.stringify(newRequestLog));
+
+  return {
+    ...state,
+    response,
+    statusCode,
+    loading: false,
+    // When new request history is incoming, update RequestHistoryTab
+    requestLog: newRequestLog,
+  };
 };
 
 const http = (state = defaultInitialState, action = defaultAction) => {
@@ -62,12 +106,7 @@ const http = (state = defaultInitialState, action = defaultAction) => {
         loading: true,
       };
     case HttpExecutorActions.setResponse:
-      return {
-        ...state,
-        response: action.payload.response,
-        statusCode: action.payload.statusCode,
-        loading: false,
-      };
+      return setResponse(state, action);
     case HttpExecutorActions.setBody:
       return {
         ...state,
@@ -85,6 +124,11 @@ const http = (state = defaultInitialState, action = defaultAction) => {
       };
     case HttpExecutorActions.reset:
       return defaultInitialState;
+    case HttpExecutorActions.setRequestLog:
+      return {
+        ...state,
+        requestLog: action.payload.requestLog,
+      };
     case HttpExecutorActions.setRequestHistoryView:
       return {
         ...state,
@@ -94,13 +138,7 @@ const http = (state = defaultInitialState, action = defaultAction) => {
         response: action.payload.response,
         statusCode: action.payload.statusCode,
         body: action.payload.body,
-        activeTab: action.payload.activeTab,
         headers: action.payload.headers,
-      };
-    case HttpExecutorActions.notifyIncomingRequest:
-      return {
-        ...state,
-        incomingRequest: action.payload.incomingRequest,
       };
     default:
       return state;

@@ -15,18 +15,26 @@
  */
 
 import { WithStyles, withStyles } from '@material-ui/core';
-import { StyleRules } from '@material-ui/core/styles';
+
+import HttpExecutorStore from 'components/HttpExecutor/store/HttpExecutorStore';
 import HttpResponse from 'components/HttpExecutor/HttpResponse';
 import InputPath from 'components/HttpExecutor/InputPath';
 import MethodSelector from 'components/HttpExecutor/MethodSelector';
+import { Provider } from 'react-redux';
+import React from 'react';
 import RequestHistoryTab from 'components/HttpExecutor/RequestHistoryTab';
 import RequestMetadata from 'components/HttpExecutor/RequestMetadata';
 import SendButton from 'components/HttpExecutor/SendButton';
 import StatusCode from 'components/HttpExecutor/StatusCode';
-import HttpExecutorStore from 'components/HttpExecutor/store/HttpExecutorStore';
+import { StyleRules } from '@material-ui/core/styles';
 import T from 'i18n-react';
-import React from 'react';
-import { Provider } from 'react-redux';
+
+export enum RequestMethod {
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  DELETE = 'DELETE',
+}
 
 const PREFIX = 'features.HttpExecutor';
 
