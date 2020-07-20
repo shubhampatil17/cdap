@@ -17,6 +17,7 @@
 import * as React from 'react';
 
 import { List, Map } from 'immutable';
+import { getDateID, getRequestsByDate } from 'components/HttpExecutor/utilities';
 import withStyles, { StyleRules, WithStyles } from '@material-ui/core/styles/withStyles';
 
 import ExpansionPanel from '@material-ui/core/ExpansionPanel';
@@ -28,7 +29,6 @@ import { RequestMethod } from 'components/HttpExecutor';
 import Typography from '@material-ui/core/Typography';
 import classnames from 'classnames';
 import { connect } from 'react-redux';
-import moment from 'moment';
 
 export interface IRequestHistory {
   timestamp: string;
@@ -160,10 +160,6 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
   setRequestLog,
   onRequestClick,
 }) => {
-  const convertDateToString = (date: Date) => {
-    return moment(date).format('dddd, MMMM d, YYYY');
-  };
-
   // Query through localstorage to populate RequestHistoryTab
   // requestLog maps timestamp date (e.g. April 5th) to a list of corresponding request histories, sorted by timestamp
   React.useEffect(() => {
@@ -188,9 +184,9 @@ const RequestHistoryTabView: React.FC<IRequestHistoryTabProps> = ({
           })
           .forEach((req: IRequestHistory) => {
             const timestamp = new Date(req.timestamp);
-            const dateInString = convertDateToString(timestamp);
-            const existingRequestHistory = newRequestLog.get(dateInString) || List([]);
-            newRequestLog = newRequestLog.set(dateInString, existingRequestHistory.push(req));
+            const dateID: string = getDateID(timestamp);
+            const requestsGroup = getRequestsByDate(newRequestLog, dateID);
+            newRequestLog = newRequestLog.set(dateID, requestsGroup.push(req));
           });
         setRequestLog(newRequestLog);
       } catch (e) {
