@@ -20,7 +20,7 @@ import {
   downloadPluginJSON,
   getJSONOutput,
   parsePluginJSON,
-} from 'components/PluginJSONCreator/Create/PluginJSONMenu/utilities';
+} from 'components/PluginJSONCreator/utilities';
 import {
   useAppInternalState,
   useConfigurationGroupState,
