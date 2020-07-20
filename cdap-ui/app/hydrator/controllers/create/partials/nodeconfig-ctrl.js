@@ -58,6 +58,7 @@ class HydratorPlusPlusNodeConfigCtrl {
     this.onMacroEnabled = this.onMacroEnabled.bind(this);
     this.onSchemaChange = this.onSchemaChange.bind(this);
     this.onSchemaImportLinkClick = this.onSchemaImportLinkClick.bind(this);
+    this.isSchemaMacro = this.isSchemaMacro.bind(this);
     this.tabs = [
       {
         label: 'Properties',
@@ -612,6 +613,9 @@ class HydratorPlusPlusNodeConfigCtrl {
       this.state.node.outputSchema = [{ name: 'etlSchemaBody', schema: ''}];
     }
     this.$scope.$digest();
+  }
+  isSchemaMacro() {
+    return this.state.schemaAdvance;
   }
   getActionsDropdownMap() {
     let actionsMap = {};

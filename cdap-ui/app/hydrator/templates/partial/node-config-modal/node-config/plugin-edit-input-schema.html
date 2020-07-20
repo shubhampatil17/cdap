@@ -15,12 +15,21 @@
 -->
 <div class="input-schema" data-cy="plugin-input-schema-container">
   <div class="schema-inner" ng-if="::HydratorPlusPlusNodeConfigCtrl.state.node.inputSchema">
-    <h4>Input Schema</h4>
-    <my-input-schema
+    <!-- <h4>Input Schema</h4> -->
+
+    <plugin-schema-editor
+      disabled="true"
+      schemas="HydratorPlusPlusNodeConfigCtrl.state.node.inputSchema"
+      on-schema-change="HydratorPlusPlusNodeConfigCtrl.onSchemaChange"
+      actions-dropdown-map="HydratorPlusPlusNodeConfigCtrl.getActionsDropdownMap()"
+      title="'Input Schema'">
+    </plugin-schema-editor>
+
+    <!-- <my-input-schema
         data-multiple-inputs="{{::(HydratorPlusPlusNodeConfigCtrl.state.groupsConfig.inputs.multipleInputs === true)}}"
         input-schema="{{::HydratorPlusPlusNodeConfigCtrl.state.node.inputSchema}}"
         is-in-studio="!isDisabled"
         errors="HydratorPlusPlusNodeConfigCtrl.inputSchemaErrors">
-    </my-input-schema>
+    </my-input-schema> -->
   </div>
 </div>

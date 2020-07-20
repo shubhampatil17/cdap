@@ -39,6 +39,7 @@ const FieldTypeBase = ({
   onRemove,
   autoFocus,
   typeProperties,
+  disabled = false,
 }: IFieldTypeBaseProps) => {
   /**
    * We use hooks here because we propagte the state only upwards
@@ -108,12 +109,14 @@ const FieldTypeBase = ({
           onKeyUp={() => ({})}
         />
         <Select
+          disabled={disabled}
           value={fieldType}
           onChange={onTypeChangeHandler}
           widgetProps={{ options: schemaTypes, dense: true }}
         />
       </FieldInputWrapper>
       <RowButtons
+        disabled={disabled}
         nullable={fieldNullable}
         onNullable={type === 'union' ? undefined : onNullable}
         type={fieldType}

@@ -28,6 +28,7 @@ const UnionTypeBase = ({
   onRemove,
   autoFocus,
   typeProperties,
+  disabled = false,
 }: IFieldTypeBaseProps) => {
   const [fieldType, setFieldType] = React.useState(type);
   const [fieldTypeProperties, setFieldTypeProperties] = React.useState(typeProperties || {});
@@ -50,6 +51,7 @@ const UnionTypeBase = ({
     <React.Fragment>
       <SingleColumnWrapper>
         <Select
+          disabled={disabled}
           value={fieldType}
           onChange={(newValue) => {
             setFieldType(newValue);
@@ -60,6 +62,7 @@ const UnionTypeBase = ({
         />
       </SingleColumnWrapper>
       <RowButtons
+        disabled={disabled}
         onAdd={onAdd}
         onRemove={onRemove}
         type={fieldType}

@@ -68,6 +68,7 @@ interface IFieldRowProps extends WithStyles<typeof styles> {
   field: IFlattenRowType;
   onChange: IRowOnChangeHandler;
   autoFocus?: boolean;
+  disabled?: boolean;
 }
 
 class FieldRowBase extends React.Component<IFieldRowProps, IFieldRowState> {
@@ -149,6 +150,7 @@ class FieldRowBase extends React.Component<IFieldRowProps, IFieldRowState> {
       case InternalTypesEnum.RECORD_COMPLEX_TYPE_ROOT:
         return (
           <FieldType
+            disabled={this.props.disabled}
             name={this.props.field.name}
             type={this.props.field.type}
             nullable={this.props.field.nullable}
@@ -164,6 +166,7 @@ class FieldRowBase extends React.Component<IFieldRowProps, IFieldRowState> {
       case InternalTypesEnum.ARRAY_COMPLEX_TYPE_ROOT:
         return (
           <ArrayType
+            disabled={this.props.disabled}
             type={this.props.field.type}
             nullable={this.props.field.nullable}
             onChange={this.onChange}
@@ -176,6 +179,7 @@ class FieldRowBase extends React.Component<IFieldRowProps, IFieldRowState> {
       case InternalTypesEnum.ENUM_SYMBOL:
         return (
           <EnumType
+            disabled={this.props.disabled}
             typeProperties={this.props.field.typeProperties}
             onChange={this.onChange}
             onAdd={this.onAdd}
@@ -189,6 +193,7 @@ class FieldRowBase extends React.Component<IFieldRowProps, IFieldRowState> {
       case InternalTypesEnum.MAP_VALUES_SIMPLE_TYPE:
         return (
           <MapType
+            disabled={this.props.disabled}
             internalType={this.props.field.internalType}
             type={this.props.field.type}
             nullable={this.props.field.nullable}
@@ -203,6 +208,7 @@ class FieldRowBase extends React.Component<IFieldRowProps, IFieldRowState> {
       case InternalTypesEnum.UNION_COMPLEX_TYPE_ROOT:
         return (
           <UnionType
+            disabled={this.props.disabled}
             type={this.props.field.type}
             nullable={this.props.field.nullable}
             onChange={this.onChange}

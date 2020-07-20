@@ -40,6 +40,7 @@ interface IFieldsListState {
 }
 
 interface IFieldsListProps extends WithStyles<typeof styles> {
+  disabled?: boolean;
   value: IFlattenRowType[];
   onChange: (id: IFieldIdentifier, onChangePayload: IOnChangePayload) => IOnChangeReturnType;
 }
@@ -85,6 +86,7 @@ class FieldsListBase extends React.Component<IFieldsListProps, IFieldsListState>
         }
         return (
           <FieldRow
+            disabled={this.props.disabled}
             autoFocus={currentRowToFocus === field.id}
             key={field.id}
             field={field}

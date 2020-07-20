@@ -27,19 +27,34 @@ import If from 'components/If';
 import Textbox from 'components/AbstractWidget/FormInputs/TextBox';
 import { RefreshableSchemaEditor } from 'components/PluginSchemaEditor/RefreshableSchemaEditor';
 import ConfigurableTab from 'components/ConfigurableTab';
+import classnames from 'classnames';
+import { objectQuery } from 'services/helpers';
 
 const styles = (theme): StyleRules => {
   return {
     container: {
       display: 'block',
     },
+    fieldset: {
+      '&[disabled] *': {
+        color: `${theme.palette.grey[200]} !important`,
+        cursor: 'not-allowed !important',
+      },
+    },
+    tabContent: {
+      width: '100%',
+    },
     header: {
       display: 'grid',
       gridTemplateColumns: '75% 25%',
       alignItems: 'center',
-      margin: '5px 0',
-      paddingBottom: '5px',
+      margin: '-15px -10px 5px -10px',
+      padding: '0 10px 5px;',
       borderBottom: `1px solid ${theme.palette.grey[300]}`,
+    },
+    disabledHeader: {
+      margin: '0 -10px 5px -10px',
+      padding: '0 10px 10px',
     },
     title: {
       fontWeight: 500,
@@ -91,9 +106,12 @@ interface IPluginSchemaEditorState {
 }
 
 interface IPluginSchemaEditorProps extends WithStyles<typeof styles> {
+  disabled?: boolean;
   actionsDropdownMap: IActionsDropdownTooltip;
   schemas: IPluginSchema[];
   onSchemaChange: (schemas: IPluginSchema[]) => void;
+  title?: string;
+  isSchemaMacro?: boolean;
 }
 
 class PluginSchemaEditorBase extends React.Component<
@@ -104,25 +122,39 @@ class PluginSchemaEditorBase extends React.Component<
     (value) => value
   );
 
+  private getMode = () => {
+    if (this.props.disabled) {
+      return (objectQuery(this.props.schemas, 0, 'schema') || '').indexOf('${') !== -1
+        ? IPluginSchemaEditorModes.Macro
+        : IPluginSchemaEditorModes.Editor;
+    }
+    return this.props.isSchemaMacro
+      ? IPluginSchemaEditorModes.Macro
+      : IPluginSchemaEditorModes.Editor;
+  };
+
   public state = {
     schemas: this.props.schemas,
     loading: false,
-    mode:
-      this.props.schemas[0].schema.indexOf('${') !== -1
-        ? IPluginSchemaEditorModes.Macro
-        : IPluginSchemaEditorModes.Editor,
+    mode: this.getMode(),
   };
 
   private ee = ee(ee);
 
   constructor(props) {
     super(props);
-    this.ee.on('schema.import', this.onSchemaImport);
-    this.ee.on('schema.export', this.onSchemaExport);
+    if (!this.props.disabled) {
+      this.ee.on('schema.import', this.onSchemaImport);
+      this.ee.on('schema.export', this.onSchemaExport);
+    }
   }
 
   public componentWillReceiveProps(nextProps: IPluginSchemaEditorProps) {
     this.actions = Object.values(nextProps.actionsDropdownMap).map((value) => value);
+  }
+
+  public componentWillUnmount() {
+    this.ee.off('schema.export', this.onSchemaExport);
   }
 
   public onSchemaExport = () => {
@@ -176,6 +208,9 @@ class PluginSchemaEditorBase extends React.Component<
         s.schema = JSON.parse(schema.schema);
       } catch (e) {
         return schema;
+      }
+      if (s.schema.name) {
+        s.schema.name = s.schema.name.replace('.', '.type');
       }
       return s;
     });
@@ -231,8 +266,8 @@ class PluginSchemaEditorBase extends React.Component<
     }
   };
 
-  private santizeSchemasForEditor = () => {
-    return (this.state.schemas || []).map((s) => {
+  private santizeSchemasForEditor = (schemas = this.state.schemas) => {
+    return (schemas || []).map((s) => {
       const newSchema = {
         name: s.name,
         schema: s.schema,
@@ -254,16 +289,21 @@ class PluginSchemaEditorBase extends React.Component<
         id: i,
         name: s.name,
         content: (
-          <RefreshableSchemaEditor
-            schema={s}
-            onChange={({ avroSchema }) => {
-              const newSchemas = [...this.props.schemas];
-              newSchemas[i] = avroSchema;
-              newSchemas[i].schema = JSON.stringify(newSchemas[i].schema);
-              this.props.onSchemaChange(newSchemas);
-            }}
-          />
+          <fieldset disabled={this.props.disabled} className={this.props.classes.fieldset}>
+            <RefreshableSchemaEditor
+              schema={s}
+              disabled={this.props.disabled}
+              onChange={({ avroSchema }) => {
+                const newSchemas = [...this.props.schemas];
+                newSchemas[i] = avroSchema;
+                newSchemas[i].schema = JSON.stringify(newSchemas[i].schema);
+                this.props.onSchemaChange(newSchemas);
+              }}
+            />
+          </fieldset>
         ),
+        contentClassName: this.props.classes.tabContent,
+        paneClassName: this.props.classes.tabContent,
       };
     });
     const tabProps = {
@@ -281,30 +321,39 @@ class PluginSchemaEditorBase extends React.Component<
     if (this.state.loading || this.state.mode === IPluginSchemaEditorModes.Macro) {
       return null;
     }
-
     if (this.state.schemas.length > 1) {
       return this.renderSchemaIntabs();
     }
+    if (!this.state.schemas.length && this.props.disabled) {
+      return `No ${this.props.title} available`;
+    }
     return this.santizeSchemasForEditor().map((schema, i) => (
-      <SchemaEditor
-        schema={schema}
-        onChange={({ avroSchema }) => {
-          const newSchemas = [...this.props.schemas];
-          newSchemas[i] = avroSchema;
-          newSchemas[i].schema = JSON.stringify(newSchemas[i].schema);
-          this.props.onSchemaChange(newSchemas);
-        }}
-      />
+      <fieldset disabled={this.props.disabled} className={this.props.classes.fieldset}>
+        <SchemaEditor
+          schema={schema}
+          disabled={this.props.disabled}
+          onChange={({ avroSchema }) => {
+            const newSchemas = [...this.props.schemas];
+            newSchemas[i] = avroSchema;
+            newSchemas[i].schema = JSON.stringify(newSchemas[i].schema);
+            this.props.onSchemaChange(newSchemas);
+          }}
+        />
+      </fieldset>
     ));
   };
 
   public renderMacroEditor = () => {
-    if (this.state.mode === IPluginSchemaEditorModes.Editor) {
+    if (this.state.loading || this.state.mode === IPluginSchemaEditorModes.Editor) {
       return null;
     }
     const macro = this.state.schemas[0].schema;
+    if (this.props.disabled) {
+      return macro;
+    }
     return (
       <Textbox
+        disabled={this.props.disabled}
         value={macro}
         className={this.props.classes.macroTextBox}
         onChange={(value) => {
@@ -318,20 +367,33 @@ class PluginSchemaEditorBase extends React.Component<
     );
   };
 
-  public render() {
-    const { classes } = this.props;
+  public renderHeader = () => {
+    const { classes, title, disabled } = this.props;
     return (
-      <div className={classes.container}>
-        <div className={classes.header}>
-          <div className={classes.title}>Output Schema</div>
+      <div
+        className={classnames(classes.header, {
+          [classes.disabledHeader]: disabled,
+        })}
+      >
+        <div className={classes.title}>{title || 'Schema'}</div>
+        <If condition={!disabled}>
           <Select
             classes={{ root: classes.actionsDropdown }}
             value={''}
             placeholder="Actions"
             onChange={this.onActionsHandler}
-            widgetProps={{ options: this.actions }}
+            widgetProps={{ options: this.actions, dense: true }}
           />
-        </div>
+        </If>
+      </div>
+    );
+  };
+
+  public render() {
+    const { classes } = this.props;
+    return (
+      <div className={classes.container}>
+        {this.renderHeader()}
         <If condition={this.state.loading}>
           <div className={classes.loadingContainer}>
             <LoadingSVG />
@@ -357,5 +419,7 @@ const PluginSchemaEditor = (props) => {
   onSchemaChange: PropTypes.func,
   disabled: PropTypes.func,
   actionsDropdownMap: PropTypes.array,
+  title: PropTypes.string,
+  isSchemaMacro: PropTypes.func,
 };
 export { PluginSchemaEditor };

@@ -41,7 +41,7 @@ import {
   OperationTypesEnum,
 } from 'components/AbstractWidget/SchemaEditor/SchemaConstants';
 
-const styles = (): StyleRules => {
+const styles = (theme): StyleRules => {
   return {
     schemaContainer: {
       width: '100%',
@@ -52,6 +52,7 @@ const styles = (): StyleRules => {
 
 interface ISchemaEditorProps extends WithStyles<typeof styles> {
   schema: ISchemaType;
+  disabled?: boolean;
   onChange: (props: {
     tree: INode;
     flat: IFlattenRowType[];
@@ -66,6 +67,7 @@ interface ISchemaEditorState {
 
 class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditorState> {
   private schema: ISchemaManager = null;
+  private validate;
   constructor(props) {
     super(props);
     const { schema = getDefaultEmptyAvroSchema(), options } = props;
@@ -74,6 +76,11 @@ class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditor
       flat: dumbestClone(this.schema.getFlatSchema()),
       tree: dumbestClone(this.schema.getSchemaTree()),
     };
+  }
+  public componentDidMount() {
+    if (this.validate) {
+      this.validate(this.schema.getFlatSchema()[1], this.schema.getSchemaTree());
+    }
   }
 
   public componentWillReceiveProps(nextProps) {
@@ -106,9 +113,16 @@ class SchemaEditorBase extends React.Component<ISchemaEditorProps, ISchemaEditor
         <SchemaValidatorProvider>
           <div className={classes.schemaContainer}>
             <SchemaValidatorConsumer>
-              {({ validate }) => (
-                <FieldsList value={flat} onChange={this.onChange.bind(this, validate)} />
-              )}
+              {({ validate }) => {
+                this.validate = validate;
+                return (
+                  <FieldsList
+                    value={flat}
+                    onChange={this.onChange.bind(this, validate)}
+                    disabled={this.props.disabled}
+                  />
+                );
+              }}
             </SchemaValidatorConsumer>
           </div>
         </SchemaValidatorProvider>
@@ -129,6 +143,7 @@ function SchemaEditor(props) {
 SchemaEditor.propTypes = {
   schema: PropTypes.object,
   onChange: PropTypes.func,
+  disabled: PropTypes.bool,
 };
 
 export { SchemaEditor };

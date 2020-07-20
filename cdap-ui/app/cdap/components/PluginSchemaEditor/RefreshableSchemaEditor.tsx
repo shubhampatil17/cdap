@@ -22,7 +22,6 @@ import withStyles, { WithStyles, StyleRules } from '@material-ui/core/styles/wit
 const styles = (theme): StyleRules => {
   return {
     container: {
-      width: '350px',
       textAlign: 'center',
     },
   };
@@ -36,9 +35,15 @@ interface IPluginSchema {
 interface IRefreshableSchemaEditor extends WithStyles<typeof styles> {
   schema: IPluginSchema;
   onChange: (schemas: IPluginSchema) => void;
+  disabled?: boolean;
 }
 
-function RefreshableSchemaEditorBase({ schema, onChange, classes }: IRefreshableSchemaEditor) {
+function RefreshableSchemaEditorBase({
+  schema,
+  onChange,
+  disabled,
+  classes,
+}: IRefreshableSchemaEditor) {
   const [loading, setLoading] = React.useState(false);
   React.useEffect(() => {
     setLoading(true);
@@ -52,7 +57,7 @@ function RefreshableSchemaEditorBase({ schema, onChange, classes }: IRefreshable
         <LoadingSVG />
       </If>
       <If condition={!loading}>
-        <SchemaEditor schema={schema} onChange={onChange} />
+        <SchemaEditor schema={schema} disabled={disabled} onChange={onChange} />
       </If>
     </div>
   );
